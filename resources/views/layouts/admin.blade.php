@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" dir="{{ LaravelLocalization::getCurrentLocaleDirection() }}">
+<html lang="{{ app()->getLocale() }}">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name', 'DMSYS') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
 
-<body class="hold-transition sidebar-mini layout-fixed">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+
+</head>
+<body class="hold-transition sidebar-mini">
 
 <div class="wrapper">
 
@@ -19,14 +21,15 @@
     {{-- Sidebar --}}
     @include('layouts.partials.sidebar')
 
-    {{-- Main Content --}}
-    <div class="content-wrapper">
-        <section class="content p-3">
-            @yield('content')
-        </section>
+    {{-- Content --}}
+    <div class="content-wrapper p-4">
+        @yield('content')
     </div>
 
 </div>
+
+<!-- AdminLTE JS -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 
 </body>
 </html>

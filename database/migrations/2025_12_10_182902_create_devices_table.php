@@ -18,6 +18,7 @@ return new class extends Migration
         $table->string('manufacturer')->nullable();
         $table->string('location')->nullable();   // سنتحول إلى multilang لاحقًا
         $table->date('installation_date')->nullable();
+        $table->json('name');
         $table->enum('status', ['active', 'inactive', 'under_maintenance', 'out_of_service'])
               ->default('active');
         $table->timestamps();

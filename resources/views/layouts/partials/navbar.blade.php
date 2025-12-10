@@ -1,15 +1,35 @@
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+        </li>
+    </ul>
+
+    <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
 
         <!-- Language Switch -->
-        @foreach(LaravelLocalization::getSupportedLocales() as $localeCode => $properties)
-            <li class="nav-item">
-                <a class="nav-link" rel="alternate" hreflang="{{ $localeCode }}"
-                   href="{{ LaravelLocalization::getLocalizedURL($localeCode) }}">
-                    {{ $properties['native'] }}
-                </a>
-            </li>
-        @endforeach
+        <li class="nav-item dropdown">
+            <a class="nav-link" data-toggle="dropdown" href="#">
+                🌐 {{ strtoupper(app()->getLocale()) }}
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-right">
+                <a href="{{ url('/lang/en') }}" class="dropdown-item">English</a>
+                <a href="{{ url('/lang/ar') }}" class="dropdown-item">العربية</a>
+            </div>
+        </li>
+
+        <!-- Logout -->
+        <li class="nav-item">
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button class="btn btn-danger btn-sm ml-3">{{ __('Logout') }}</button>
+            </form>
+        </li>
 
     </ul>
+
 </nav>

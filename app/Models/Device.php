@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Astrotomic\Translatable\Translatable;
+use Spatie\Translatable\HasTranslations;
 
 class Device extends Model
 {
-    use Translatable;
+    use HasTranslations;
+
+    public $translatable = ['name'];
 
     protected $fillable = [
         'serial_number',
@@ -15,8 +17,7 @@ class Device extends Model
         'manufacturer',
         'location',
         'installation_date',
-        'status'
+        'status',
+        'name',
     ];
-
-    public $translatedAttributes = ['name', 'description'];
 }
