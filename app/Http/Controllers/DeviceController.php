@@ -3,58 +3,121 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\Project; // استيراد الموديل الصحيح
 use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
-    public function index()
-    {
-        // Fetch list of devices
-        $devices = Device::paginate(10);
+    /**
+     * قائمة الأجهزة
+     */
+   public function index()
+{
+    $devices = Device::with('project')->paginate(10);
+    $projects = \App\Models\Project::all(); // <-- أضف هذا السطر
 
-        return view('devices.index', compact('devices'));
-    }
+    return view('devices.index', compact('devices', 'projects'));
+}
 
+    /**
+     * صفحة إضافة جهاز جديد
+     */
     public function create()
     {
-        return view('devices.create');
+        $projects = Project::all(); // جلب كل المشاريع
+        return view('devices.create', compact('projects'));
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'serial_number' => 'required|unique:devices,serial_number',
-            'model' => 'nullable|string',
-            'manufacturer' => 'nullable|string',
-            'location' => 'nullable|string',
-            'installation_date' => 'nullable|date',
-            'status' => 'required',
+    public function edit($id)
+{
+    $device = Device::findOrFail($id);
+    $projects = Project::all();
 
-            // translated fields
-            'name_en' => 'required|string',
-            'name_ar' => 'required|string',
-        ]);
+    return view('devices.edit', compact('device', 'projects'));
+}
 
-        // Create new device
-        $device = new Device();
+public function update(Request $request, $id)
+{
+    $device = Device::findOrFail($id);
 
-        // Save translated name as JSON (Spatie)
-        $device->setTranslations('name', [
-            'en' => $request->name_en,
-            'ar' => $request->name_ar,
-        ]);
+    $validated = $request->validate([
+        'serial_number' => 'required|unique:devices,serial_number,' . $device->id,
+        'model' => 'nullable|string',
+        'manufacturer' => 'nullable|string',
+        'location' => 'nullable|string',
+        'installation_date' => 'nullable|date',
+        'status' => 'required',
+        'project_id' => 'required|exists:projects,id',
 
-        // Save normal fields
-        $device->serial_number = $request->serial_number;
-        $device->model = $request->model;
-        $device->manufacturer = $request->manufacturer;
-        $device->location = $request->location;
-        $device->installation_date = $request->installation_date;
-        $device->status = $request->status;
+        // Translations
+        'name_en' => 'required|string',
+        'name_ar' => 'required|string',
+    ]);
 
-        $device->save();
+    // تحديث البيانات الأساسية
+    $device->update([
+        'serial_number' => $validated['serial_number'],
+        'model' => $validated['model'],
+        'manufacturer' => $validated['manufacturer'],
+        'location' => $validated['location'],
+        'installation_date' => $validated['installation_date'],
+        'status' => $validated['status'],
+        'project_id' => $validated['project_id'],
+    ]);
 
-        return redirect()->route('devices.index')
-                         ->with('success', __('Device created successfully'));
-    }
+    // تحديث الترجمة
+    $device->translateOrNew('en')->name = $validated['name_en'];
+    $device->translateOrNew('ar')->name = $validated['name_ar'];
+    $device->save();
+
+    return redirect()
+        ->route('devices.index')
+        ->with('success', 'Device updated successfully.');
+}
+
+
+    /**
+     * تخزين الجهاز في قاعدة البيانات
+     */
+   public function store(Request $request)
+{
+    $validated = $request->validate([
+        'serial_number' => 'required|unique:devices,serial_number',
+        'model' => 'nullable|string',
+        'manufacturer' => 'nullable|string',
+        'location' => 'nullable|string',
+        'installation_date' => 'nullable|date',
+        'status' => 'required',
+
+        'project_id' => 'required|exists:projects,id',
+
+        'name_en' => 'required|string',
+        'name_ar' => 'required|string',
+        'description_en' => 'nullable|string',
+        'description_ar' => 'nullable|string',
+    ]);
+
+    $device = Device::create([
+        'serial_number' => $validated['serial_number'],
+        'model'         => $validated['model'] ?? null,
+        'manufacturer'  => $validated['manufacturer'] ?? null,
+        'location'      => $validated['location'] ?? null,
+        'installation_date' => $validated['installation_date'] ?? null,
+        'status'        => $validated['status'],
+        'project_id'    => $validated['project_id'],
+
+        'name' => [
+            'en' => $validated['name_en'],
+            'ar' => $validated['name_ar'],
+        ],
+        'description' => [
+            'en' => $validated['description_en'] ?? '',
+            'ar' => $validated['description_ar'] ?? '',
+        ],
+    ]);
+
+    return redirect()->route('devices.index')
+                     ->with('success', 'Device created successfully.');
+}
+
 }

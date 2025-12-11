@@ -18,6 +18,25 @@ class Device extends Model
         'location',
         'installation_date',
         'status',
-        'name',
+        'project_id',
+        'name'
     ];
+
+    public function pmPlans()
+{
+    return $this->hasMany(PmPlan::class);
+}
+
+public function pmRecords()
+{
+    return $this->hasMany(PmRecord::class);
+}
+
+public function project()
+{
+    return $this->belongsTo(Project::class);
+}
+
+
+
 }

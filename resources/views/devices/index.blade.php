@@ -2,56 +2,64 @@
 
 @section('content')
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
+<div class="container-fluid">
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">{{ __('Devices List') }}</h3>
-
-        <div class="card-tools">
-            <a href="{{ route('devices.create') }}" class="btn btn-primary btn-sm">
-                + {{ __('Add Device') }}
-            </a>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>{{ __('Devices List') }}</h3>
+        <a href="{{ route('devices.create') }}" class="btn btn-primary">+ {{ __('Add Device') }}</a>
     </div>
 
-    <div class="card-body table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead>
-                <tr>
-                    <th>{{ __('Name') }}</th>
-                    <th>{{ __('Serial Number') }}</th>
-                    <th>{{ __('Model') }}</th>
-                    <th>{{ __('Status') }}</th>
-                    <th>{{ __('Actions') }}</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @forelse($devices as $device)
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-striped table-bordered mb-0">
+                <thead>
                     <tr>
-                        <td>{{ $device->name }}</td>
-                        <td>{{ $device->serial_number }}</td>
-                        <td>{{ $device->model }}</td>
-                        <td>{{ __(''.$device->status) }}</td>
-                        <td>
-                            <a href="#" class="btn btn-info btn-sm">{{ __('Edit') }}</a>
-                        </td>
+                        <th>#</th>
+                        <th>{{ __('Name') }}</th>
+                        <th>{{ __('Serial Number') }}</th>
+                        <th>{{ __('Model') }}</th>
+                        <th>{{ __('Project') }}</th>
+                        <th>{{ __('Status') }}</th>
+                        <th width="120">{{ __('Actions') }}</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center">{{ __('No devices found') }}</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
 
-        <div class="mt-3">
+                <tbody>
+                    @forelse ($devices as $device)
+                        <tr>
+                            <td>{{ $device->id }}</td>
+                            <td>{{ $device->name['en'] ?? 'N/A' }}</td>
+                            <td>{{ $device->serial_number }}</td>
+                            <td>{{ $device->model }}</td>
+
+                            <td>
+                                {{ $device->project->name ?? '-' }}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-info">{{ $device->status }}</span>
+                            </td>
+
+                            <td>
+                                <a href="{{ route('devices.edit', $device->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-3">
+                                {{ __('No devices found.') }}
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer">
             {{ $devices->links() }}
         </div>
     </div>
+
 </div>
 
 @endsection

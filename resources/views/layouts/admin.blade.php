@@ -9,8 +9,15 @@
 
     <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 
 </head>
+@if(app()->getLocale() == 'ar')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap-rtl.min.css">
+@endif
+@vite(['resources/js/app.js'])
+
 <body class="hold-transition sidebar-mini">
 
 <div class="wrapper">
@@ -30,6 +37,7 @@
 
 <!-- AdminLTE JS -->
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+
 
 </body>
 </html>

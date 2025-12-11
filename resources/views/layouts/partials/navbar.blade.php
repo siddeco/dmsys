@@ -10,17 +10,19 @@
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
 
-        <!-- Language Switch -->
-        <li class="nav-item dropdown">
-            <a class="nav-link" data-toggle="dropdown" href="#">
-                🌐 {{ strtoupper(app()->getLocale()) }}
-            </a>
+       <!-- Language Switch -->
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button"
+       data-bs-toggle="dropdown" aria-expanded="false">
+        🌐 {{ strtoupper(app()->getLocale()) }}
+    </a>
 
-            <div class="dropdown-menu dropdown-menu-right">
-                <a href="{{ url('/lang/en') }}" class="dropdown-item">English</a>
-                <a href="{{ url('/lang/ar') }}" class="dropdown-item">العربية</a>
-            </div>
-        </li>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ route('lang.switch', 'en') }}">English</a></li>
+        <li><a class="dropdown-item" href="{{ route('lang.switch', 'ar') }}">العربية</a></li>
+    </ul>
+</li>
+
 
         <!-- Logout -->
         <li class="nav-item">

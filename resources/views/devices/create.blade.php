@@ -2,6 +2,8 @@
 
 @section('content')
 
+@can('create devices')
+
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">{{ __('Add Device') }}</h3>
@@ -67,6 +69,22 @@
                     </select>
                 </div>
 
+                {{-- Project Selection --}}
+                <div class="col-md-12 mb-3">
+                    <label>{{ __('Project') }}</label>
+                    <select name="project_id" class="form-control" required>
+                        <option value="">-- {{ __('Choose Project') }} --</option>
+                        @foreach ($projects as $project)
+                            <option value="{{ $project->id }}">
+                                {{ $project->name }} 
+                                @if($project->client)
+                                    ({{ $project->client }})
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
             </div>
 
             <div class="text-center mt-4">
@@ -77,5 +95,13 @@
 
     </div>
 </div>
+
+@else
+
+<div class="alert alert-danger mt-4">
+    {{ __('You are not authorized to add devices.') }}
+</div>
+
+@endcan
 
 @endsection

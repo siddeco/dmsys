@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Breakdown extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'device_id',
+        'project_id',
+        'issue_description',
+        'status',
+        'assigned_to',
+        'assigned_at',
+        'engineer_report',
+        'completed_at',
+    ];
+
+    /**
+     * الجهاز المرتبط بالبلاغ
+     */
+    public function device()
+    {
+        return $this->belongsTo(Device::class);
+    }
+
+    /**
+     * المشروع المستهدف
+     */
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * الفني المَسنود له البلاغ
+     */
+    public function assignedEngineer()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+}
