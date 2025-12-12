@@ -12,37 +12,27 @@ return new class extends Migration
    public function up()
 {
     Schema::create('breakdowns', function (Blueprint $table) {
-        $table->id();
+    $table->id();
 
-        // الجهاز المرتبط بالعطل
-        $table->foreignId('device_id')->constrained()->onDelete('cascade');
+    $table->foreignId('device_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('project_id')->constrained()->cascadeOnDelete();
 
-        // المشروع المستهدف (نسحبه من الجهاز)
-        $table->foreignId('project_id')->constrained()->onDelete('cascade');
+    // المستخدم الذي أنشأ البلاغ
+    $table->foreignId('reported_by')->constrained('users')->cascadeOnDelete();
 
-        // وصف المشكلة
-        $table->text('issue_description');
+    // الفني المستلم
+    $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
 
-        // حالة البلاغ
-        $table->enum('status', [
-            'new',          // تم إنشاء البلاغ
-            'assigned',     // تم إسناده لفني
-            'in_progress',  // الفني بدأ العمل
-            'completed',    // تمت المعالجة
-        ])->default('new');
+    $table->string('title');
+    $table->text('description')->nullable();
 
-        // إسناد الفني
-        $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
-        $table->timestamp('assigned_at')->nullable();
+    $table->enum('status', ['open', 'in_progress', 'resolved'])->default('open');
 
-        // تقرير الفني
-        $table->text('engineer_report')->nullable();
+    $table->timestamp('reported_at')->nullable();
 
-        // وقت الإصلاح
-        $table->timestamp('completed_at')->nullable();
+    $table->timestamps();
+});
 
-        $table->timestamps();
-    });
 }
 
 public function down()

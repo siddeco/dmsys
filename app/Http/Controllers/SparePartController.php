@@ -11,12 +11,25 @@ class SparePartController extends Controller
     /**
      * عرض قائمة القطع
      */
-    public function index()
-    {
-        $parts = SparePart::with('device')->paginate(10);
+    public function index(Request $request)
+{
+    $query = SparePart::with('device');
 
-        return view('spare_parts.index', compact('parts'));
+    // 🔴 Low Stock
+    if ($request->get('low_stock')) {
+        $query->whereColumn('quantity', '<=', 'alert_threshold');
     }
+
+    // 🔴 Out of Stock
+    if ($request->get('out_of_stock')) {
+        $query->where('quantity', 0);
+    }
+
+    $parts = $query->latest()->paginate(10);
+
+    return view('spare_parts.index', compact('parts'));
+}
+
 
     /**
      * صفحة إنشاء قطعة جديدة

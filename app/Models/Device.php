@@ -16,6 +16,7 @@ class Device extends Model
         'model',
         'manufacturer',
         'location',
+        'city',
         'installation_date',
         'status',
         'project_id',

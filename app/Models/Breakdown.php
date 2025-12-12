@@ -43,4 +43,21 @@ class Breakdown extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+
+    public function reporter()
+{
+    return $this->belongsTo(User::class, 'reported_by');
+}
+
+public function assignee()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+
+public function assignedUser()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+
+
 }

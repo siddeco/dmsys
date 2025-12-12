@@ -5,17 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\PmPlan;
 use App\Models\Device;
 use Illuminate\Http\Request;
+use Carbon\Carbon; // ✅ الاستيراد الصحيح
 
 class PmPlanController extends Controller
 {
     /**
      * Display all PM plans
      */
-    public function index()
-    {
-        $plans = PmPlan::with('device')->paginate(10);
-        return view('pm.plans.index', compact('plans'));
+   public function index(Request $request)
+{
+    $query = PmPlan::with('device');
+
+    // 🔴 Overdue PM
+    if ($request->has('overdue')) {
+        $query->where('next_pm_date', '<', Carbon::today());
     }
+
+    // 🔵 Due Soon (30 days)
+    if ($request->get('due') === 'soon') {
+        $query->whereBetween(
+            'next_pm_date',
+            [Carbon::today(), Carbon::today()->addDays(30)]
+        );
+    }
+
+    $plans = $query->orderBy('next_pm_date')->paginate(10);
+
+    return view('pm.plans.index', compact('plans'));
+}
 
     /**
      * Show create form
@@ -55,7 +72,7 @@ class PmPlanController extends Controller
     }
 
     /**
-     * (OPTIONAL) Edit PM Plan - مفيد جداً
+     * Edit PM Plan
      */
     public function edit($id)
     {
@@ -66,7 +83,7 @@ class PmPlanController extends Controller
     }
 
     /**
-     * (OPTIONAL) Update PM Plan
+     * Update PM Plan
      */
     public function update(Request $request, $id)
     {

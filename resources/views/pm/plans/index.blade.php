@@ -39,7 +39,13 @@
                                 ({{ $plan->device->serial_number ?? '' }})
                             </td>
                             <td>{{ $plan->interval_months }}</td>
-                            <td>{{ $plan->next_pm_date }}</td>
+                            <td>{{ $plan->next_pm_date->format('Y-m-d') }}
+
+    @if($plan->next_pm_date < now())
+        <span class="badge bg-danger ms-2">Overdue</span>
+    @elseif($plan->next_pm_date <= now()->addDays(30))
+        <span class="badge bg-warning ms-2">Due Soon</span>
+    @endif</td>
                             <td>{{ $plan->notes ?? '-' }}</td>
 
                             <td>

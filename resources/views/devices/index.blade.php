@@ -19,6 +19,7 @@
                         <th>{{ __('Serial Number') }}</th>
                         <th>{{ __('Model') }}</th>
                         <th>{{ __('Project') }}</th>
+                        <th>City</th>
                         <th>{{ __('Status') }}</th>
                         <th width="120">{{ __('Actions') }}</th>
                     </tr>
@@ -35,6 +36,7 @@
                             <td>
                                 {{ $device->project->name ?? '-' }}
                             </td>
+                            <td>{{ $device->city }}</td>
 
                             <td>
                                 <span class="badge bg-info">{{ $device->status }}</span>

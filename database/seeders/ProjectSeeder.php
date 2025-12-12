@@ -7,18 +7,46 @@ use App\Models\Project;
 
 class ProjectSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
         $projects = [
-            ['name' => 'Riyadh Dental Project', 'client' => 'MOH', 'city' => 'Riyadh'],
-            ['name' => 'Jeddah Imaging Center', 'client' => 'Private Clinic', 'city' => 'Jeddah'],
-            ['name' => 'Tabuk Dental Center', 'client' => 'MOH', 'city' => 'Tabuk'],
-            ['name' => 'Qassim Medical Project', 'client' => 'Government', 'city' => 'Qassim'],
-            ['name' => 'Makkah Sterilization Unit', 'client' => 'Hospital', 'city' => 'Makkah'],
+            [
+                'name' => 'King Fahad Hospital',
+                'client' => 'MOH',
+                'city' => 'Riyadh',
+                'description' => 'Main tertiary hospital project',
+            ],
+            [
+                'name' => 'Tabuk Dental Complex',
+                'client' => 'Private',
+                'city' => 'Tabuk',
+                'description' => 'Dental clinics project',
+            ],
+            [
+                'name' => 'Jeddah Medical Center',
+                'client' => 'MOH',
+                'city' => 'Jeddah',
+                'description' => 'General medical center',
+            ],
+            [
+                'name' => 'Asir Central Hospital',
+                'client' => 'MOH',
+                'city' => 'Asir',
+                'description' => 'Regional hospital',
+            ],
+            [
+                'name' => 'Al Jouf Dental Center',
+                'client' => 'Private',
+                'city' => 'Al Jouf',
+                'description' => 'Dental services center',
+            ],
         ];
 
         foreach ($projects as $project) {
-            Project::create($project);
+            Project::firstOrCreate(
+                ['name' => $project['name']],
+                $project
+            );
         }
     }
 }

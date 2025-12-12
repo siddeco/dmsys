@@ -41,29 +41,35 @@ public function update(Request $request, $id)
     $device = Device::findOrFail($id);
 
     $validated = $request->validate([
-        'serial_number' => 'required|unique:devices,serial_number,' . $device->id,
-        'model' => 'nullable|string',
-        'manufacturer' => 'nullable|string',
-        'location' => 'nullable|string',
-        'installation_date' => 'nullable|date',
-        'status' => 'required',
-        'project_id' => 'required|exists:projects,id',
+    'serial_number' => 'required|unique:devices,serial_number,' . $device->id,
+    'model' => 'nullable|string',
+    'manufacturer' => 'nullable|string',
+    'location' => 'nullable|string',
+    'city' => 'required|string',
+    'installation_date' => 'nullable|date',
+    'status' => 'required',
+    'project_id' => 'required|exists:projects,id',
+    'name_en' => 'required|string',
+    'name_ar' => 'required|string',
+]);
 
-        // Translations
-        'name_en' => 'required|string',
-        'name_ar' => 'required|string',
-    ]);
 
     // تحديث البيانات الأساسية
     $device->update([
-        'serial_number' => $validated['serial_number'],
-        'model' => $validated['model'],
-        'manufacturer' => $validated['manufacturer'],
-        'location' => $validated['location'],
-        'installation_date' => $validated['installation_date'],
-        'status' => $validated['status'],
-        'project_id' => $validated['project_id'],
-    ]);
+    'serial_number' => $validated['serial_number'],
+    'model' => $validated['model'] ?? null,
+    'manufacturer' => $validated['manufacturer'] ?? null,
+    'location' => $validated['location'] ?? null,
+    'city' => $validated['city'],
+    'installation_date' => $validated['installation_date'] ?? null,
+    'status' => $validated['status'],
+    'project_id' => $validated['project_id'],
+    'name' => [
+        'en' => $validated['name_en'],
+        'ar' => $validated['name_ar'],
+    ],
+]);
+
 
     // تحديث الترجمة
     $device->translateOrNew('en')->name = $validated['name_en'];
@@ -82,39 +88,34 @@ public function update(Request $request, $id)
    public function store(Request $request)
 {
     $validated = $request->validate([
-        'serial_number' => 'required|unique:devices,serial_number',
-        'model' => 'nullable|string',
-        'manufacturer' => 'nullable|string',
-        'location' => 'nullable|string',
-        'installation_date' => 'nullable|date',
-        'status' => 'required',
+    'serial_number' => 'required|unique:devices,serial_number',
+    'model' => 'nullable|string',
+    'manufacturer' => 'nullable|string',
+    'location' => 'nullable|string',   // اسم المستشفى / المركز
+    'city' => 'required|string',        // المدينة
+    'installation_date' => 'nullable|date',
+    'status' => 'required',
+    'project_id' => 'required|exists:projects,id',
+    'name_en' => 'required|string',
+    'name_ar' => 'required|string',
+]);
 
-        'project_id' => 'required|exists:projects,id',
-
-        'name_en' => 'required|string',
-        'name_ar' => 'required|string',
-        'description_en' => 'nullable|string',
-        'description_ar' => 'nullable|string',
-    ]);
 
     $device = Device::create([
-        'serial_number' => $validated['serial_number'],
-        'model'         => $validated['model'] ?? null,
-        'manufacturer'  => $validated['manufacturer'] ?? null,
-        'location'      => $validated['location'] ?? null,
-        'installation_date' => $validated['installation_date'] ?? null,
-        'status'        => $validated['status'],
-        'project_id'    => $validated['project_id'],
+    'serial_number' => $validated['serial_number'],
+    'model' => $validated['model'] ?? null,
+    'manufacturer' => $validated['manufacturer'] ?? null,
+    'location' => $validated['location'] ?? null,
+    'city' => $validated['city'],
+    'installation_date' => $validated['installation_date'] ?? null,
+    'status' => $validated['status'],
+    'project_id' => $validated['project_id'],
+    'name' => [
+        'en' => $validated['name_en'],
+        'ar' => $validated['name_ar'],
+    ],
+]);
 
-        'name' => [
-            'en' => $validated['name_en'],
-            'ar' => $validated['name_ar'],
-        ],
-        'description' => [
-            'en' => $validated['description_en'] ?? '',
-            'ar' => $validated['description_ar'] ?? '',
-        ],
-    ]);
 
     return redirect()->route('devices.index')
                      ->with('success', 'Device created successfully.');

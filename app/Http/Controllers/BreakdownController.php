@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User; 
 use App\Models\Breakdown;
 use App\Models\Device;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class BreakdownController extends Controller
@@ -11,14 +13,27 @@ class BreakdownController extends Controller
     /**
      * عرض كل بلاغات الأعطال
      */
-    public function index()
-    {
-        $breakdowns = Breakdown::with(['device', 'project', 'assignedEngineer'])
-                               ->orderBy('id', 'desc')
-                               ->paginate(10);
+   public function index(Request $request)
+{
+    $query = Breakdown::with(['device', 'project']);
 
-        return view('breakdowns.index', compact('breakdowns'));
+    // 🔴 Open only
+    if ($request->get('status')) {
+        $query->where('status', $request->status);
     }
+
+    // 🔴 Critical (open > 7 days)
+    if ($request->get('critical')) {
+        $query->where('status', 'open')
+              ->whereDate('created_at', '<=', now()->subDays(7));
+    }
+
+    $breakdowns = $query->latest()->paginate(10);
+
+    return view('breakdowns.index', compact('breakdowns'));
+}
+
+
 
     /**
      * صفحة إنشاء بلاغ جديد
@@ -56,11 +71,80 @@ class BreakdownController extends Controller
     /**
      * عرض تفاصيل البلاغ
      */
-    public function show($id)
-    {
-        $breakdown = Breakdown::with(['device', 'project', 'assignedEngineer'])
-                              ->findOrFail($id);
 
-        return view('breakdowns.show', compact('breakdown'));
-    }
+
+public function show($id)
+{
+    $breakdown = Breakdown::with(['device', 'project', 'assignedUser'])
+        ->findOrFail($id);
+
+    // 👇 جلب الفنيين فقط
+    $technicians = User::role('technician')->get();
+
+    return view('breakdowns.show', compact(
+        'breakdown',
+        'technicians'
+    ));
+}
+
+
+    public function assign(Request $request, Breakdown $breakdown)
+{
+    $request->validate([
+        'assigned_to' => 'required|exists:users,id'
+    ]);
+
+    $breakdown->update([
+        'assigned_to' => $request->assigned_to,
+        'status'      => 'assigned',
+        'assigned_at' => now(),
+    ]);
+
+    return back()->with('success', 'Breakdown assigned successfully.');
+}
+
+
+public function start(Breakdown $breakdown)
+{
+    abort_if(auth()->id() !== $breakdown->assigned_to, 403);
+
+    $breakdown->update([
+        'status'     => 'in_progress',
+        'started_at'=> now(),
+    ]);
+
+    return back()->with('success', 'Work started.');
+}
+
+public function resolve(Request $request, Breakdown $breakdown)
+{
+    abort_if(auth()->id() !== $breakdown->assigned_to, 403);
+
+    $request->validate([
+        'resolution_notes' => 'required|string'
+    ]);
+
+    $breakdown->update([
+        'status'           => 'resolved',
+        'resolved_at'      => now(),
+        'resolution_notes'=> $request->resolution_notes,
+    ]);
+
+    return back()->with('success', 'Breakdown resolved.');
+}
+
+
+public function close(Breakdown $breakdown)
+{
+    $breakdown->update([
+        'status'    => 'closed',
+        'closed_at'=> now(),
+    ]);
+
+    return back()->with('success', 'Breakdown closed.');
+}
+
+
+
+
 }
