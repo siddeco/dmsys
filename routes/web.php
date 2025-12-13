@@ -57,6 +57,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/pm-plans/store', [PmPlanController::class, 'store'])->name('pm.plans.store');
     Route::get('/pm-plans/{id}', [PmPlanController::class, 'show'])->name('pm.plans.show');
 
+    Route::post('/pm-plans/{plan}/assign', [PmPlanController::class, 'assign'])
+    ->name('pm.plans.assign');
+
+Route::post('/pm-plans/{plan}/start', [PmPlanController::class, 'start'])
+    ->name('pm.plans.start');
+
+Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
+    ->name('pm.plans.complete');
+
+
     // PM Records
     Route::get('/pm-plans/{plan_id}/records', [PmRecordController::class, 'index'])->name('pm.records.index');
     Route::get('/pm-plans/{plan_id}/records/create', [PmRecordController::class, 'create'])->name('pm.records.create');

@@ -3,60 +3,43 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Carbon\Carbon;
+use App\Models\User;
 
 class PmPlan extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'device_id',
         'interval_months',
         'next_pm_date',
         'notes',
+        'assigned_to',
+        'status',
     ];
 
-    /**
-     * Casts
-     */
     protected $casts = [
         'next_pm_date' => 'date',
-        'interval_months' => 'integer',
     ];
-
-    /**
-     * علاقة مع الجهاز
-     */
+    // الجهاز
     public function device()
     {
         return $this->belongsTo(Device::class);
     }
 
-    /**
-     * علاقة مع سجلات الصيانة
-     */
+    // الفني المسؤول
+    public function technician()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    // سجلات الصيانة
     public function records()
     {
-        return $this->hasMany(PmRecord::class)
-                    ->orderBy('performed_at', 'desc'); // ترتيب أحدث سجل أولاً
+        return $this->hasMany(PmRecord::class);
     }
 
-    /**
-     * الحصول على تاريخ PM القادم بتنسيق مناسب
-     */
-    public function getNextPmFormattedAttribute()
-    {
-        return $this->next_pm_date
-            ? Carbon::parse($this->next_pm_date)->format('Y-m-d')
-            : null;
-    }
+    public function assignedUser()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
 
-    /**
-     * حساب عدد سجلات الصيانة مباشرة
-     */
-    public function getRecordsCountAttribute()
-    {
-        return $this->records()->count();
-    }
 }

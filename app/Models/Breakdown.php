@@ -10,15 +10,15 @@ class Breakdown extends Model
     use HasFactory;
 
     protected $fillable = [
-        'device_id',
-        'project_id',
-        'issue_description',
-        'status',
-        'assigned_to',
-        'assigned_at',
-        'engineer_report',
-        'completed_at',
-    ];
+    'device_id',
+    'project_id',
+    'reported_by',
+    'assigned_to',
+    'title',
+    'description',
+    'status',
+    'reported_at',
+];
 
     /**
      * الجهاز المرتبط بالبلاغ

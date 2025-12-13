@@ -35,13 +35,14 @@
                 <div class="col-md-6 mb-2">
                     <strong>Status:</strong><br>
                     <span class="badge
-                        {{ match($breakdown->status) {
-                            'open' => 'bg-danger',
-                            'assigned' => 'bg-secondary',
-                            'in_progress' => 'bg-warning',
-                            'resolved' => 'bg-info',
-                            'closed' => 'bg-success',
-                        } }}">
+                        @switch($breakdown->status)
+                            @case('open') bg-danger @break
+                            @case('assigned') bg-secondary @break
+                            @case('in_progress') bg-warning @break
+                            @case('resolved') bg-info @break
+                            @case('closed') bg-success @break
+                        @endswitch
+                    ">
                         {{ strtoupper($breakdown->status) }}
                     </span>
                 </div>
@@ -61,90 +62,82 @@
     </div>
 
     {{-- ================= WORKFLOW ACTIONS ================= --}}
-    <div class="card">
-        <div class="card-header">
-            <strong>Workflow Actions</strong>
-        </div>
-
-        <div class="card-body">
-
-            {{-- ASSIGN (Admin / Engineer) --}}
-            @can('manage breakdowns')
-                @if($breakdown->status === 'open')
-                    <form method="POST" action="{{ route('breakdowns.assign', $breakdown) }}">
-                        @csrf
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <select name="assigned_to" class="form-control" required>
-                                    <option value="">-- Assign Technician --</option>
-                                    @foreach($technicians as $tech)
-                                        <option value="{{ $tech->id }}">
-                                            {{ $tech->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-primary">
-                                    Assign
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                @endif
-            @endcan
-
-            {{-- START WORK (Technician) --}}
-            @can('work breakdowns')
-                @if(
-                    $breakdown->status === 'assigned' &&
-                    auth()->id() === $breakdown->assigned_to
-                )
-                    <form method="POST" action="{{ route('breakdowns.start', $breakdown) }}" class="mt-3">
-                        @csrf
-                        <button class="btn btn-warning">
-                            Start Work
-                        </button>
-                    </form>
-                @endif
-            @endcan
-
-            {{-- RESOLVE --}}
-            @can('work breakdowns')
-                @if(
-                    $breakdown->status === 'in_progress' &&
-                    auth()->id() === $breakdown->assigned_to
-                )
-                    <form method="POST" action="{{ route('breakdowns.resolve', $breakdown) }}" class="mt-3">
-                        @csrf
-                        <div class="mb-2">
-                            <textarea
-                                name="resolution_notes"
-                                class="form-control"
-                                placeholder="Resolution notes..."
-                                required></textarea>
-                        </div>
-                        <button class="btn btn-success">
-                            Resolve Breakdown
-                        </button>
-                    </form>
-                @endif
-            @endcan
-
-            {{-- CLOSE (Admin / Engineer) --}}
-            @can('manage breakdowns')
-                @if($breakdown->status === 'resolved')
-                    <form method="POST" action="{{ route('breakdowns.close', $breakdown) }}" class="mt-3">
-                        @csrf
-                        <button class="btn btn-danger">
-                            Close Breakdown
-                        </button>
-                    </form>
-                @endif
-            @endcan
-
-        </div>
+<div class="card">
+    <div class="card-header">
+        <strong>Workflow Actions</strong>
     </div>
+
+    <div class="card-body">
+
+        {{-- ASSIGN --}}
+        @can('assign breakdowns')
+            @if($breakdown->status === 'open')
+                <form method="POST" action="{{ route('breakdowns.assign', $breakdown) }}">
+                    @csrf
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <select name="assigned_to" class="form-control" required>
+                                <option value="">-- Assign Technician --</option>
+                                @foreach($technicians as $tech)
+                                    <option value="{{ $tech->id }}">
+                                        {{ $tech->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary">
+                                Assign
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            @endif
+        @endcan
+
+        {{-- START --}}
+        @can('manage breakdowns')
+            @if($breakdown->status === 'assigned')
+                <form method="POST" action="{{ route('breakdowns.start', $breakdown) }}" class="mt-3">
+                    @csrf
+                    <button class="btn btn-warning">
+                        Start Work
+                    </button>
+                </form>
+            @endif
+        @endcan
+
+        {{-- RESOLVE --}}
+        @can('manage breakdowns')
+            @if($breakdown->status === 'in_progress')
+                <form method="POST" action="{{ route('breakdowns.resolve', $breakdown) }}" class="mt-3">
+                    @csrf
+                    <textarea name="resolution_notes"
+                              class="form-control mb-2"
+                              placeholder="Resolution notes..."
+                              required></textarea>
+                    <button class="btn btn-success">
+                        Resolve
+                    </button>
+                </form>
+            @endif
+        @endcan
+
+        {{-- CLOSE --}}
+        @can('manage breakdowns')
+            @if($breakdown->status === 'resolved')
+                <form method="POST" action="{{ route('breakdowns.close', $breakdown) }}" class="mt-3">
+                    @csrf
+                    <button class="btn btn-danger">
+                        Close Breakdown
+                    </button>
+                </form>
+            @endif
+        @endcan
+
+    </div>
+</div>
+
 
 </div>
 

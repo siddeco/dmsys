@@ -6,90 +6,180 @@
 
 <div class="container mt-4">
 
-    {{-- Page Header --}}
+    {{-- HEADER --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>PM Plan Details</h3>
-        <a href="{{ route('pm.records.create', $plan->id) }}" class="btn btn-success">
-            + Add PM Record
-        </a>
+        <a href="{{ route('pm.plans.index') }}" class="btn btn-secondary btn-sm">← Back</a>
     </div>
 
-    {{-- Success Message --}}
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-
-    {{-- Device Information --}}
+    {{-- DEVICE INFO --}}
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
-            <b>Device Information</b>
+            <strong>Device Information</strong>
         </div>
-
         <div class="card-body">
-            <p><strong>Name:</strong> {{ $plan->device->name }}</p>
-            <p><strong>Serial Number:</strong> {{ $plan->device->serial_number }}</p>
+            <p><strong>Name:</strong> {{ $plan->device->name['en'] ?? 'N/A' }}</p>
+            <p><strong>Serial Number:</strong> {{ $plan->device->serial_number ?? 'N/A' }}</p>
             <p><strong>Model:</strong> {{ $plan->device->model ?? '-' }}</p>
             <p><strong>Manufacturer:</strong> {{ $plan->device->manufacturer ?? '-' }}</p>
         </div>
     </div>
 
-    {{-- Plan Information --}}
+    {{-- PLAN INFO --}}
     <div class="card mb-4">
         <div class="card-header bg-info text-white">
-            <b>PM Plan Details</b>
+            <strong>PM Plan Details</strong>
         </div>
-
         <div class="card-body">
             <p><strong>Interval (Months):</strong> {{ $plan->interval_months }}</p>
-            <p><strong>Next PM Date:</strong> {{ $plan->next_pm_formatted }}</p>
+            <p><strong>Next PM Date:</strong> {{ $plan->next_pm_date }}</p>
+
+            <p>
+                <strong>Status:</strong>
+                <span class="badge
+                    @if($plan->status === 'pending') bg-secondary
+                    @elseif($plan->status === 'assigned') bg-info
+                    @elseif($plan->status === 'in_progress') bg-warning
+                    @elseif($plan->status === 'done') bg-success
+                    @endif">
+                    {{ strtoupper($plan->status) }}
+                </span>
+            </p>
+
+            <p>
+                <strong>Assigned To:</strong>
+                {{ $plan->assignedUser->name ?? 'Not Assigned' }}
+            </p>
+
             <p><strong>Notes:</strong> {{ $plan->notes ?? '-' }}</p>
-            <p><strong>Total PM Records:</strong> {{ $plan->records_count }}</p>
         </div>
     </div>
 
-    {{-- PM Records Table --}}
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <b>PM Records History</b>
+    {{-- WORKFLOW ACTIONS --}}
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Workflow Actions</strong>
         </div>
 
+        <div class="card-body">
+
+            {{-- ASSIGN PM (Admin / Engineer) --}}
+            @can('manage pm')
+                @if($plan->status === 'pending' && !$plan->assigned_to)
+                    <form method="POST" action="{{ route('pm.plans.assign', $plan) }}">
+                        @csrf
+                        <div class="row">
+                            <div class="col-md-6">
+                                <select name="assigned_to" class="form-control" required>
+                                    <option value="">-- Assign Technician --</option>
+                                    @foreach($technicians as $tech)
+                                        <option value="{{ $tech->id }}">{{ $tech->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary">Assign PM</button>
+                            </div>
+                        </div>
+                    </form>
+                @endif
+            @endcan
+
+            {{-- START PM (Technician only) --}}
+            @can('work pm')
+                @if(
+                    $plan->status === 'assigned' &&
+                    auth()->id() === $plan->assigned_to
+                )
+                    <form method="POST" action="{{ route('pm.plans.start', $plan) }}" class="mt-3">
+                        @csrf
+                        <button class="btn btn-warning">Start PM</button>
+                    </form>
+                @endif
+            @endcan
+
+            {{-- COMPLETE PM (Technician only) --}}
+            @can('work pm')
+                @if(
+                    $plan->status === 'in_progress' &&
+                    auth()->id() === $plan->assigned_to
+                )
+                    <form method="POST" action="{{ route('pm.plans.complete', $plan) }}" class="mt-3">
+                        @csrf
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>PM Result</strong></label>
+                            <select name="status" class="form-control" required>
+                                <option value="">-- Select Result --</option>
+                                <option value="ok">OK</option>
+                                <option value="needs_parts">Needs Parts</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Work Report</strong></label>
+                            <textarea
+                                name="report"
+                                class="form-control"
+                                rows="3"
+                                placeholder="PM work report..."
+                                required></textarea>
+                        </div>
+
+                        <button class="btn btn-success">
+                            Complete PM
+                        </button>
+                    </form>
+                @endif
+            @endcan
+
+        </div>
+    </div>
+
+    {{-- PM RECORDS --}}
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <strong>PM Records History</strong>
+        </div>
         <div class="card-body p-0">
-            <table class="table table-bordered table-striped mb-0">
-                <thead class="thead-dark">
+            <table class="table table-bordered mb-0">
+                <thead>
                     <tr>
                         <th>#</th>
-                        <th>Performed At</th>
+                        <th>Date</th>
                         <th>Engineer</th>
                         <th>Status</th>
                         <th>Report</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    @forelse($plan->records as $record)
-                        <tr>
-                            <td>{{ $record->id }}</td>
-                            <td>{{ $record->performed_at_formatted }}</td>
-                            <td>{{ $record->engineer_name }}</td>
-                            <td>
-                                @if($record->status == 'ok')
-                                    <span class="badge bg-success">OK</span>
-                                @elseif($record->status == 'needs_parts')
-                                    <span class="badge bg-warning">Needs Parts</span>
-                                @elseif($record->status == 'critical')
-                                    <span class="badge bg-danger">Critical</span>
-                                @endif
-                            </td>
-                            <td>{{ $record->report ?? '-' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center">No PM Records found.</td>
-                        </tr>
-                    @endforelse
+                @forelse($plan->records as $record)
+                    <tr>
+                        <td>{{ $record->id }}</td>
+                        <td>{{ $record->performed_at }}</td>
+                        <td>{{ $record->engineer_name }}</td>
+                        <td>
+                            <span class="badge
+                                @if($record->status === 'ok') bg-success
+                                @elseif($record->status === 'needs_parts') bg-warning
+                                @elseif($record->status === 'critical') bg-danger
+                                @endif">
+                                {{ strtoupper($record->status) }}
+                            </span>
+                        </td>
+                        <td>{{ $record->report }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center">No PM records yet.</td>
+                    </tr>
+                @endforelse
                 </tbody>
-
             </table>
         </div>
     </div>

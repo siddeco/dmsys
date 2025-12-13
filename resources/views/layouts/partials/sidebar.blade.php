@@ -2,19 +2,19 @@
 
     <!-- Brand Logo -->
     <a href="{{ route('dashboard') }}" class="brand-link">
-        <span class="brand-text font-weight-light">{{ __('Maintenance System') }}</span>
+        <span class="brand-text font-weight-light">
+            {{ __('Maintenance System') }}
+        </span>
     </a>
 
     <!-- Sidebar -->
     <div class="sidebar">
 
-        <!-- Sidebar Menu -->
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview">
 
-
                 {{-- ===========================
-                     Dashboard
+                     DASHBOARD
                 ============================ --}}
                 @can('view dashboard')
                 <li class="nav-item">
@@ -27,7 +27,7 @@
 
 
                 {{-- ===========================
-                     Devices
+                     DEVICES (Admin / Engineer)
                 ============================ --}}
                 @can('view devices')
                 <li class="nav-item">
@@ -38,7 +38,7 @@
                 </li>
                 @endcan
 
-                @can('create devices')
+                @can('manage devices')
                 <li class="nav-item">
                     <a href="{{ route('devices.create') }}" class="nav-link">
                         <i class="nav-icon fas fa-plus-circle"></i>
@@ -49,13 +49,13 @@
 
 
                 {{-- ===========================
-                     Modules Header
+                     MODULES HEADER
                 ============================ --}}
                 <li class="nav-header">{{ __('Modules') }}</li>
 
 
                 {{-- ===========================
-                     Projects
+                     PROJECTS (Admin / Engineer)
                 ============================ --}}
                 @can('view projects')
                 <li class="nav-item">
@@ -68,20 +68,20 @@
 
 
                 {{-- ===========================
-                     PM Plans
+                     PM (ALL USERS)
                 ============================ --}}
-                @can('view pm plans')
+                @can('view pm')
                 <li class="nav-item">
                     <a href="{{ route('pm.plans.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-wrench"></i>
-                        <p>{{ __('Preventive Maintenance (PM)') }}</p>
+                        <p>{{ __('Preventive Maintenance') }}</p>
                     </a>
                 </li>
                 @endcan
 
 
                 {{-- ===========================
-                     Breakdowns
+                     BREAKDOWNS
                 ============================ --}}
                 @can('view breakdowns')
                 <li class="nav-item">
@@ -94,12 +94,12 @@
 
 
                 {{-- ===========================
-                     Spare Parts
+                     SPARE PARTS (Admin / Engineer)
                 ============================ --}}
                 @can('view spare parts')
                 <li class="nav-item">
                     <a href="{{ route('spare_parts.index') }}" class="nav-link">
-                        <i class="nav-icon fas fa-cog"></i>
+                        <i class="nav-icon fas fa-cogs"></i>
                         <p>{{ __('Spare Parts') }}</p>
                     </a>
                 </li>
@@ -107,9 +107,9 @@
 
 
                 {{-- ===========================
-                     User Management
+                     USERS (Admin ONLY)
                 ============================ --}}
-                @can('view users')
+                @can('manage users')
                 <li class="nav-item">
                     <a href="{{ route('users.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-users-cog"></i>
@@ -117,7 +117,6 @@
                     </a>
                 </li>
                 @endcan
-
 
             </ul>
         </nav>

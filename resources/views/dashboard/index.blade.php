@@ -1,26 +1,88 @@
 @extends('layouts.admin')
 
 @section('content')
+@if($mode === 'technician')
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>{{ $myBreakdowns }}</h3>
+                <p>My Breakdown Tasks</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="small-box bg-primary">
+            <div class="inner">
+                <h3>{{ $myPmPlans }}</h3>
+                <p>My PM Tasks</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-wrench"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <strong>My Latest Breakdowns</strong>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Device</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @forelse($latestBreakdowns as $b)
+                <tr>
+                    <td>{{ $b->device->name['en'] ?? 'Device' }}</td>
+                    <td>{{ ucfirst($b->status) }}</td>
+                    <td>
+                        <a href="{{ route('breakdowns.show', $b->id) }}"
+                           class="btn btn-sm btn-outline-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="text-center">No tasks</td>
+                </tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@else
 
 <div class="container-fluid">
 
-    {{-- ================= CARDS ================= --}}
+    {{-- ================= ADMIN CARDS ================= --}}
+    @can('manage breakdowns')
     <div class="row">
 
-        <!-- Total Devices -->
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ route('devices.index') }}" class="small-box bg-info text-white">
                 <div class="inner">
                     <h3>{{ $totalDevices }}</h3>
                     <p>Total Devices</p>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-tools"></i>
-                </div>
+                <div class="icon"><i class="fas fa-tools"></i></div>
             </a>
         </div>
 
-        <!-- Open Breakdowns -->
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ route('breakdowns.index', ['status' => 'open']) }}"
                class="small-box bg-danger text-white">
@@ -28,13 +90,10 @@
                     <h3>{{ $openBreakdowns }}</h3>
                     <p>Open Work Orders</p>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
+                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
             </a>
         </div>
 
-        <!-- In Progress -->
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ route('breakdowns.index', ['status' => 'in_progress']) }}"
                class="small-box bg-warning text-dark">
@@ -42,13 +101,10 @@
                     <h3>{{ $inProgressBreakdowns }}</h3>
                     <p>In Progress</p>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-spinner"></i>
-                </div>
+                <div class="icon"><i class="fas fa-spinner"></i></div>
             </a>
         </div>
 
-        <!-- PM Due Soon -->
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ route('pm.plans.index', ['due' => 'soon']) }}"
                class="small-box bg-primary text-white">
@@ -56,13 +112,10 @@
                     <h3>{{ $pmDueSoon }}</h3>
                     <p>PM Due in 30 Days</p>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
+                <div class="icon"><i class="fas fa-calendar-check"></i></div>
             </a>
         </div>
 
-        <!-- Low Stock -->
         <div class="col-lg-3 col-md-6 mb-3">
             <a href="{{ route('spare_parts.index', ['low_stock' => 1]) }}"
                class="small-box bg-secondary text-white">
@@ -70,68 +123,76 @@
                     <h3>{{ $lowStockParts }}</h3>
                     <p>Low Stock Spare Parts</p>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-boxes"></i>
-                </div>
+                <div class="icon"><i class="fas fa-boxes"></i></div>
             </a>
         </div>
 
     </div>
+    @endcan
 
-    {{-- ================= ALERTS ================= --}}
+    {{-- ================= TECHNICIAN CARDS ================= --}}
+    @can('work breakdowns')
+    <div class="row">
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="small-box bg-warning text-dark">
+                <div class="inner">
+                    <h3>{{ $myOpenBreakdowns ?? 0 }}</h3>
+                    <p>My Active Breakdowns</p>
+                </div>
+                <div class="icon"><i class="fas fa-bolt"></i></div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="small-box bg-primary text-white">
+                <div class="inner">
+                    <h3>{{ $myPmDue ?? 0 }}</h3>
+                    <p>My PM Due Soon</p>
+                </div>
+                <div class="icon"><i class="fas fa-wrench"></i></div>
+            </div>
+        </div>
+
+    </div>
+    @endcan
+
+    {{-- ================= ADMIN ALERTS ================= --}}
+    @can('manage breakdowns')
     <div class="row mt-3">
 
-        @if(isset($criticalBreakdowns) && $criticalBreakdowns > 0)
-            <div class="col-md-4 mb-2">
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <strong>Critical!</strong>
-                    {{ $criticalBreakdowns }} breakdowns exceeded SLA
-                    <a href="{{ route('breakdowns.index', ['critical' => 1]) }}"
-                       class="alert-link">Review</a>
-                </div>
+        @isset($criticalBreakdowns)
+        @if($criticalBreakdowns > 0)
+        <div class="col-md-4 mb-2">
+            <div class="alert alert-danger">
+                <strong>Critical!</strong>
+                {{ $criticalBreakdowns }} breakdowns exceeded SLA
             </div>
-        @endif
-
-        @if(isset($overduePm) && $overduePm > 0)
-            <div class="col-md-4 mb-2">
-                <div class="alert alert-warning">
-                    <i class="fas fa-calendar-times"></i>
-                    <strong>PM Overdue!</strong>
-                    {{ $overduePm }} PM plans are overdue
-                    <a href="{{ route('pm.plans.index', ['overdue' => 1]) }}"
-                       class="alert-link">View</a>
-                </div>
-            </div>
-        @endif
-
-       @if($outOfStockParts > 0)
-<div class="col-md-4">
-    <div class="alert alert-info d-flex align-items-center shadow-sm">
-        <i class="fas fa-boxes fa-2x me-3 text-primary"></i>
-        <div>
-            <strong>Inventory Alert</strong><br>
-            {{ $outOfStockParts }} spare parts reached minimum stock
-            <br>
-            <a href="{{ route('spare_parts.index', ['low_stock' => 1]) }}"
-               class="alert-link">
-                View Inventory
-            </a>
         </div>
+        @endif
+        @endisset
+
+        @isset($overduePm)
+        @if($overduePm > 0)
+        <div class="col-md-4 mb-2">
+            <div class="alert alert-warning">
+                <strong>PM Overdue!</strong>
+                {{ $overduePm }} PM plans are overdue
+            </div>
+        </div>
+        @endif
+        @endisset
+
     </div>
-</div>
-@endif
+    @endcan
 
-
-
-    </div>
-
-    {{-- ================= CHARTS ================= --}}
+    {{-- ================= ADMIN CHARTS ================= --}}
+    @can('manage breakdowns')
     <div class="row mt-4">
 
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h6 class="mb-0">Breakdowns Status</h6></div>
+            <div class="card">
+                <div class="card-header">Breakdowns Status</div>
                 <div class="card-body">
                     <canvas id="breakdownsChart"></canvas>
                 </div>
@@ -139,8 +200,8 @@
         </div>
 
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h6 class="mb-0">Devices Status</h6></div>
+            <div class="card">
+                <div class="card-header">Devices Status</div>
                 <div class="card-body">
                     <canvas id="devicesChart"></canvas>
                 </div>
@@ -148,8 +209,8 @@
         </div>
 
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h6 class="mb-0">PM Schedule</h6></div>
+            <div class="card">
+                <div class="card-header">PM Schedule</div>
                 <div class="card-body">
                     <canvas id="pmChart"></canvas>
                 </div>
@@ -157,62 +218,13 @@
         </div>
 
     </div>
-
-    {{-- ================= LATEST BREAKDOWNS ================= --}}
-    <div class="row mt-4">
-
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Latest Breakdown Requests</h6>
-                </div>
-
-                <div class="card-body p-0">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>Device</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @forelse($latestBreakdowns as $breakdown)
-                            <tr>
-                                <td>{{ $breakdown->device->name['en'] ?? 'Device' }}</td>
-                                <td>
-                                    <span class="badge
-                                        {{ $breakdown->status == 'open' ? 'bg-danger' :
-                                           ($breakdown->status == 'in_progress' ? 'bg-warning' : 'bg-success') }}">
-                                        {{ ucfirst($breakdown->status) }}
-                                    </span>
-                                </td>
-                                <td>{{ $breakdown->created_at->format('Y-m-d') }}</td>
-                                <td>
-                                    <a href="{{ route('breakdowns.show', $breakdown->id) }}"
-                                       class="btn btn-sm btn-outline-primary">View</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center">No breakdowns</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
-        </div>
-
-    </div>
+    @endcan
 
 </div>
 
-{{-- ================= CHART JS ================= --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+@can('manage breakdowns')
 <script>
 @if(isset($breakdownsChart))
 new Chart(document.getElementById('breakdownsChart'), {
@@ -244,9 +256,8 @@ new Chart(document.getElementById('devicesChart'), {
 new Chart(document.getElementById('pmChart'), {
     type: 'bar',
     data: {
-        labels: ['Due Soon (30 days)', 'Later'],
+        labels: ['Due Soon', 'Later'],
         datasets: [{
-            label: 'PM Plans',
             data: [{{ $pmSoonCount }}, {{ $pmLaterCount }}],
             backgroundColor: ['#007bff', '#28a745']
         }]
@@ -254,5 +265,7 @@ new Chart(document.getElementById('pmChart'), {
 });
 @endif
 </script>
+@endcan
+@endif
 
 @endsection
