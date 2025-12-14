@@ -17,6 +17,8 @@ class PmRecord extends Model
         'engineer_name',
         'status',
         'report',
+        'report_file',
+        'scan_image',
     ];
 
     /**

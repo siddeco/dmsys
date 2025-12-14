@@ -7,28 +7,33 @@ use App\Models\Breakdown;
 use App\Models\Device;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class BreakdownController extends Controller
 {
+
+     use AuthorizesRequests;
     /**
      * عرض كل بلاغات الأعطال
      */
-   public function index(Request $request)
+ public function index(Request $request)
 {
-    $query = Breakdown::with(['device', 'project']);
+    $query = Breakdown::with(['device', 'project', 'assignedUser']);
 
-    // 🔴 Open only
-    if ($request->get('status')) {
+    // ✅ فلترة الحالة
+    if ($request->filled('status')) {
         $query->where('status', $request->status);
     }
 
-    // 🔴 Critical (open > 7 days)
-    if ($request->get('critical')) {
-        $query->where('status', 'open')
-              ->whereDate('created_at', '<=', now()->subDays(7));
+    // ✅ فلترة الفني (اختياري لاحقًا)
+    if ($request->filled('assigned_to')) {
+        $query->where('assigned_to', $request->assigned_to);
     }
 
-    $breakdowns = $query->latest()->paginate(10);
+    $breakdowns = $query
+        ->orderByDesc('created_at')
+        ->paginate(10)
+        ->withQueryString(); // ⭐⭐⭐ الحل السحري
 
     return view('breakdowns.index', compact('breakdowns'));
 }
@@ -106,7 +111,9 @@ public function show($id)
 
 public function start(Breakdown $breakdown)
 {
-    abort_if(auth()->id() !== $breakdown->assigned_to, 403);
+    abort_unless(auth()->user()->can('work breakdowns'), 403);
+
+    abort_unless(auth()->id() === $breakdown->assigned_to, 403);
 
     $breakdown->update([
         'status'     => 'in_progress',
@@ -118,20 +125,71 @@ public function start(Breakdown $breakdown)
 
 public function resolve(Request $request, Breakdown $breakdown)
 {
-    abort_if(auth()->id() !== $breakdown->assigned_to, 403);
+   abort_unless(auth()->user()->can('work breakdowns'), 403);
+
+    abort_unless(auth()->id() === $breakdown->assigned_to, 403);
+
+    // فقط المكلّف أو الأدمن
+    abort_if(
+        auth()->id() !== $breakdown->assigned_to &&
+        !auth()->user()->hasRole('admin'),
+        403
+    );
 
     $request->validate([
-        'resolution_notes' => 'required|string'
+        'report_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'scan_image'  => 'nullable|string',
     ]);
 
+    // ❌ لا Resolve بدون تقرير
+    if (!$request->hasFile('report_file') && !$request->scan_image) {
+        return back()->withErrors([
+            'report' => 'Service report (upload or scan) is required to resolve breakdown.'
+        ]);
+    }
+
+    /* =============================
+        📎 FILE UPLOAD
+    ============================== */
+    $storedPath = null;
+
+    if ($request->hasFile('report_file')) {
+        $storedPath = $request->file('report_file')
+            ->store('breakdown_reports', 'public');
+    }
+
+    /* =============================
+        📷 SCAN IMAGE
+    ============================== */
+    if ($request->scan_image) {
+        $imageData = preg_replace(
+            '/^data:image\/\w+;base64,/',
+            '',
+            $request->scan_image
+        );
+
+        $imageData = base64_decode($imageData);
+
+        $fileName = 'breakdown_reports/scan_' . now()->timestamp . '.png';
+        \Storage::disk('public')->put($fileName, $imageData);
+
+        $storedPath = $fileName;
+    }
+
+    /* =============================
+        🔄 UPDATE BREAKDOWN
+    ============================== */
     $breakdown->update([
-        'status'           => 'resolved',
-        'resolved_at'      => now(),
-        'resolution_notes'=> $request->resolution_notes,
+        'status'          => 'resolved',
+        'engineer_report' => $storedPath,
+        'completed_at'    => now(),
     ]);
 
-    return back()->with('success', 'Breakdown resolved.');
+    return redirect()
+        ->route('breakdowns.show', $breakdown)
+        ->with('success', 'Breakdown resolved successfully');
 }
+
 
 
 public function close(Breakdown $breakdown)

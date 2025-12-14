@@ -6,7 +6,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>{{ __('Devices List') }}</h3>
-        <a href="{{ route('devices.create') }}" class="btn btn-primary">+ {{ __('Add Device') }}</a>
+
+        @can('manage devices')
+<a href="{{ route('devices.create') }}" class="btn btn-primary">
+    + Add Device
+</a>
+@endcan
     </div>
 
     <div class="card">
@@ -29,26 +34,25 @@
                     @forelse ($devices as $device)
                         <tr>
                             <td>{{ $device->id }}</td>
-                            <td>{{ $device->name['en'] ?? 'N/A' }}</td>
+                            <td>{{ $device->name}}</td>
                             <td>{{ $device->serial_number }}</td>
                             <td>{{ $device->model }}</td>
-
-                            <td>
-                                {{ $device->project->name ?? '-' }}
-                            </td>
+                            <td>{{ $device->project->name ?? '-' }}</td>
                             <td>{{ $device->city }}</td>
+                            <td><span class="badge bg-info">{{ $device->status }}</span></td>
 
                             <td>
-                                <span class="badge bg-info">{{ $device->status }}</span>
-                            </td>
-
-                            <td>
-                                <a href="{{ route('devices.edit', $device->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                @can('update', $device)
+                                    <a href="{{ route('devices.edit', $device->id) }}"
+                                       class="btn btn-sm btn-warning">
+                                        Edit
+                                    </a>
+                                @endcan
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-3">
+                            <td colspan="8" class="text-center py-3">
                                 {{ __('No devices found.') }}
                             </td>
                         </tr>

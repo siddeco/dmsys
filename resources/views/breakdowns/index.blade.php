@@ -40,7 +40,7 @@
                         <td>{{ $bd->id }}</td>
 
                         <td>
-                            {{ $bd->device->name['en'] ?? 'N/A' }}
+                            {{ $bd->device->name }}
                             <br>
                             <small class="text-muted">SN: {{ $bd->device->serial_number }}</small>
                         </td>

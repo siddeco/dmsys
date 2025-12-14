@@ -18,6 +18,8 @@ class Breakdown extends Model
     'description',
     'status',
     'reported_at',
+    'engineer_report',
+    'completed_at',
 ];
 
     /**

@@ -76,26 +76,40 @@ class DashboardController extends Controller
     $pmSoonCount = $pmDueSoon;
     $pmLaterCount = PmPlan::where('next_pm_date', '>', now()->addDays(30))->count();
 
-    $latestBreakdowns = Breakdown::with('device')
-        ->latest()
-        ->take(5)
-        ->get();
+    $latestOpenBreakdowns = Breakdown::with(['device', 'project'])
+    ->where('status', 'open')
+    ->latest()
+    ->take(5)
+    ->get();
+
+
+    $pmThisWeek = PmPlan::with('device')
+    ->whereBetween('next_pm_date', [
+        Carbon::now()->startOfWeek(),
+        Carbon::now()->endOfWeek()
+    ])
+    ->where('status', '!=', 'done')
+    ->orderBy('next_pm_date')
+    ->take(5)
+    ->get();
 
     return view('dashboard.index', compact(
-        'totalDevices',
-        'openBreakdowns',
-        'inProgressBreakdowns',
-        'pmDueSoon',
-        'lowStockParts',
-        'criticalBreakdowns',
-        'overduePm',
-        'outOfStockParts',
-        'breakdownsChart',
-        'devicesChart',
-        'pmSoonCount',
-        'pmLaterCount',
-        'latestBreakdowns'
-    ))->with('mode', 'admin');
+    'totalDevices',
+    'openBreakdowns',
+    'inProgressBreakdowns',
+    'pmDueSoon',
+    'lowStockParts',
+    'criticalBreakdowns',
+    'overduePm',
+    'outOfStockParts',
+    'breakdownsChart',
+    'devicesChart',
+    'pmSoonCount',
+    'pmLaterCount',
+    'latestOpenBreakdowns',
+    'pmThisWeek'
+))->with('mode', 'admin');
+
 }
 
 }

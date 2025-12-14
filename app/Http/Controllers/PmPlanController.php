@@ -7,8 +7,10 @@ use App\Models\Device;
 use App\Models\User;
 use App\Models\PmRecord;
 use App\Models\Breakdown;
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class PmPlanController extends Controller
@@ -20,17 +22,37 @@ class PmPlanController extends Controller
     ========================= */
     public function index(Request $request)
     {
-        $query = PmPlan::with('device');
+        $query = PmPlan::with(['device', 'assignedUser']);
 
         if (auth()->user()->hasRole('technician')) {
             $query->where('assigned_to', auth()->id());
         }
 
-        if ($request->get('due') === 'soon') {
-            $query->whereDate('next_pm_date', '<=', now()->addDays(30));
-        }
+        // 🔹 PM Due Soon (30 days)
+    if ($request->get('filter') === 'due_soon') {
+        $query->whereNotNull('next_pm_date')
+              ->where('status', '!=', 'done')
+              ->whereBetween('next_pm_date', [
+                  now()->startOfDay(),
+                  now()->addDays(30)->endOfDay()
+              ]);
+    }
 
-        $plans = $query->paginate(10);
+        // 🔹 PM Overdue
+    // 🔥 PM Overdue
+    if ($request->get('overdue')) {
+        $query->whereDate('next_pm_date', '<', now())
+              ->where('status', '!=', 'done');
+    }
+
+ 
+
+
+
+        $plans = $query
+        ->orderBy('next_pm_date')
+        ->paginate(10)
+        ->withQueryString();
 
         return view('pm.plans.index', compact('plans'));
     }
@@ -112,57 +134,69 @@ class PmPlanController extends Controller
     /* =========================
        COMPLETE PM
     ========================= */
-    
-
-
 
 public function complete(Request $request, PmPlan $plan)
 {
-    $this->authorize('work pm');
-
-    abort_if(auth()->id() !== $plan->assigned_to, 403);
+    abort_unless(auth()->user()->can('work pm'), 403);
+    abort_unless(auth()->id() === $plan->assigned_to, 403);
 
     $request->validate([
-        'report' => 'required|string',
-        'status' => 'required|in:ok,needs_parts,critical',
+        'result' => 'required|in:ok,needs_parts,critical',
+        'report' => 'nullable|string',
+        'report_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+        'scan_image' => 'nullable|string',
     ]);
 
-    // إنشاء سجل PM
-    PmRecord::create([
-        'pm_plan_id'    => $plan->id,
-        'device_id'     => $plan->device_id,
-        'performed_at'  => now(),
-        'engineer_name' => auth()->user()->name,
-        'status'        => $request->status,
-        'report'        => $request->report,
+    // 🔴 شرط إلزامي: ملف أو Scan
+    if (!$request->hasFile('report_file') && !$request->scan_image) {
+        return back()->withErrors([
+            'report_file' => 'Service report file or scan is required.'
+        ]);
+    }
+
+    // 📂 حفظ الملف إن وُجد
+    $filePath = null;
+    if ($request->hasFile('report_file')) {
+        $filePath = $request->file('report_file')
+            ->store('pm_reports', 'public');
+    }
+
+    // 📝 إنشاء سجل PM
+    $record = PmRecord::create([
+        'pm_plan_id'   => $plan->id,
+        'device_id'    => $plan->device_id,
+        'performed_at' => now(),
+        'engineer_name'=> auth()->user()->name,
+        'status'       => $request->result,
+        'report'       => $request->report,
+        'report_file'  => $filePath,
+        'scan_image'   => $request->scan_image,
     ]);
 
-    // 🔔 إذا كانت النتيجة Critical → أنشئ Breakdown
-    $projectId = optional($plan->device)->project_id;
-
-    if ($request->status === 'critical' && $projectId) {
+    // 🔔 CRITICAL → إنشاء Breakdown تلقائي
+    if ($request->result === 'critical' && $plan->device?->project_id) {
         Breakdown::create([
             'device_id'   => $plan->device_id,
-            'project_id'  => $projectId,
+            'project_id'  => $plan->device->project_id,
             'reported_by' => auth()->id(),
             'title'       => 'Critical issue detected during PM',
             'description' =>
                 'Critical issue detected during PM.' . PHP_EOL .
-                'PM Plan ID: ' . $plan->id . PHP_EOL .
-                'Report: ' . $request->report,
+                'PM Plan ID: ' . $plan->id,
             'status'      => 'open',
             'reported_at' => now(),
         ]);
     }
 
-    // تحديث خطة الصيانة
+    // ⏭ تحديث الخطة
     $plan->update([
-        'status'       => 'done',
+        'status' => 'done',
         'next_pm_date' => now()->addMonths($plan->interval_months),
     ]);
 
-    // ✅ هذا هو السطر الذي كان مفقودًا
-    return back()->with('success', 'PM completed successfully');
+    return redirect()
+        ->route('pm.plans.show', $plan)
+        ->with('success', 'PM completed successfully');
 }
 
 

@@ -23,6 +23,8 @@ class Device extends Model
         'name'
     ];
 
+    
+
     public function pmPlans()
 {
     return $this->hasMany(PmPlan::class);

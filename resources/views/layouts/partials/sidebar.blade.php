@@ -16,36 +16,36 @@
                 {{-- ===========================
                      DASHBOARD
                 ============================ --}}
-                @can('view dashboard')
+                @if(canView('view dashboard'))
                 <li class="nav-item">
                     <a href="{{ route('dashboard') }}" class="nav-link">
                         <i class="nav-icon fas fa-home"></i>
                         <p>{{ __('Dashboard') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
-                     DEVICES (Admin / Engineer)
+                     DEVICES
                 ============================ --}}
-                @can('view devices')
+                @if(canView('view devices'))
                 <li class="nav-item">
                     <a href="{{ route('devices.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-tools"></i>
                         <p>{{ __('Devices') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
-                @can('manage devices')
+                @if(canView('manage devices'))
                 <li class="nav-item">
                     <a href="{{ route('devices.create') }}" class="nav-link">
                         <i class="nav-icon fas fa-plus-circle"></i>
                         <p>{{ __('Add Device') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
@@ -55,68 +55,68 @@
 
 
                 {{-- ===========================
-                     PROJECTS (Admin / Engineer)
+                     PROJECTS
                 ============================ --}}
-                @can('view projects')
+                @if(canView('view projects'))
                 <li class="nav-item">
                     <a href="{{ route('projects.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-project-diagram"></i>
                         <p>{{ __('Projects') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
-                     PM (ALL USERS)
+                     PREVENTIVE MAINTENANCE
                 ============================ --}}
-                @can('view pm')
+                @if(canView('view pm'))
                 <li class="nav-item">
                     <a href="{{ route('pm.plans.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-wrench"></i>
                         <p>{{ __('Preventive Maintenance') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
                      BREAKDOWNS
                 ============================ --}}
-                @can('view breakdowns')
+                @if(canView('view breakdowns'))
                 <li class="nav-item">
                     <a href="{{ route('breakdowns.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-bolt"></i>
                         <p>{{ __('Breakdown Requests') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
-                     SPARE PARTS (Admin / Engineer)
+                     SPARE PARTS
                 ============================ --}}
-                @can('view spare parts')
+                @if(canView('view spare parts'))
                 <li class="nav-item">
                     <a href="{{ route('spare_parts.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-cogs"></i>
                         <p>{{ __('Spare Parts') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
 
                 {{-- ===========================
-                     USERS (Admin ONLY)
+                     USERS (ADMIN ONLY)
                 ============================ --}}
-                @can('manage users')
+                @if(auth()->user()?->hasRole('admin'))
                 <li class="nav-item">
                     <a href="{{ route('users.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-users-cog"></i>
                         <p>{{ __('Users') }}</p>
                     </a>
                 </li>
-                @endcan
+                @endif
 
             </ul>
         </nav>

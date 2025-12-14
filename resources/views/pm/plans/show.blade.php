@@ -104,38 +104,67 @@
 
             {{-- COMPLETE PM (Technician only) --}}
             @can('work pm')
-                @if(
-                    $plan->status === 'in_progress' &&
-                    auth()->id() === $plan->assigned_to
-                )
-                    <form method="POST" action="{{ route('pm.plans.complete', $plan) }}" class="mt-3">
-                        @csrf
+               @if($plan->status === 'in_progress' && auth()->id() === $plan->assigned_to)
 
-                        <div class="mb-3">
-                            <label class="form-label"><strong>PM Result</strong></label>
-                            <select name="status" class="form-control" required>
-                                <option value="">-- Select Result --</option>
-                                <option value="ok">OK</option>
-                                <option value="needs_parts">Needs Parts</option>
-                                <option value="critical">Critical</option>
-                            </select>
-                        </div>
+<form method="POST"
+      action="{{ route('pm.plans.complete', $plan) }}"
+      enctype="multipart/form-data"
+      class="mt-3">
+    @csrf
 
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Work Report</strong></label>
-                            <textarea
-                                name="report"
-                                class="form-control"
-                                rows="3"
-                                placeholder="PM work report..."
-                                required></textarea>
-                        </div>
+    {{-- Result --}}
+    <div class="mb-3">
+        <label><strong>PM Result</strong></label>
+        <select name="status" class="form-control" required>
+            <option value="">-- Select Result --</option>
+            <option value="ok">OK</option>
+            <option value="needs_parts">Needs Parts</option>
+            <option value="critical">Critical</option>
+        </select>
+    </div>
 
-                        <button class="btn btn-success">
-                            Complete PM
-                        </button>
-                    </form>
-                @endif
+    {{-- UPLOAD OPTION --}}
+<div class="mb-3">
+    <label><strong>Service Report (Upload PDF / Image)</strong></label>
+    <input type="file"
+           name="report_file"
+           class="form-control"
+           accept="image/*,application/pdf">
+</div>
+
+    {{-- SCAN TOOL --}}
+<div class="mb-3">
+    <label><strong>Service Report (Scan)</strong></label>
+
+    <video id="video" width="100%" autoplay class="border rounded"></video>
+
+    <canvas id="canvas" class="d-none"></canvas>
+
+    <input type="hidden" name="scan_image" id="scan_image">
+
+    <div class="mt-2 d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" onclick="startCamera()">
+            📷 Start Camera
+        </button>
+
+        <button type="button" class="btn btn-outline-success" onclick="takeSnapshot()">
+            📸 Capture
+        </button>
+    </div>
+
+    <small class="text-muted">
+        Capture scanned service report before completing PM
+    </small>
+</div>
+
+
+    <button class="btn btn-success">
+        Complete PM
+    </button>
+</form>
+
+@endif
+
             @endcan
 
         </div>
@@ -185,5 +214,41 @@
     </div>
 
 </div>
+
+<script>
+let videoStream = null;
+
+function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            videoStream = stream;
+            const video = document.getElementById('video');
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(error => {
+            alert('Camera access denied or not supported');
+            console.error(error);
+        });
+}
+
+function takeSnapshot() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0);
+
+    const imageData = canvas.toDataURL('image/png');
+    document.getElementById('scan_image').value = imageData;
+
+    alert('Image captured successfully ✔');
+}
+</script>
+
+
 
 @endsection

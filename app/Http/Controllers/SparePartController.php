@@ -13,7 +13,7 @@ class SparePartController extends Controller
      */
     public function index(Request $request)
 {
-    $query = SparePart::with('device');
+     $query = SparePart::with('device');
 
     // 🔴 Low Stock
     if ($request->get('low_stock')) {
