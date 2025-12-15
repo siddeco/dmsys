@@ -2,13 +2,83 @@
 
 @section('content')
 <div class="container-fluid">
+ 
+    {{-- ===============================
+ 🔍 Search & Filters
+================================ --}}
+<div class="card mb-3">
+    <div class="card-header">
+        <strong>
+            <i class="fas fa-search me-1"></i>
+            Search & Filters
+        </strong>
+    </div>
 
+    <div class="card-body">
+        <form method="GET" action="{{ route('projects.index') }}">
+            <div class="row">
+
+                {{-- Search --}}
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Search</label>
+                    <input type="text"
+                           name="q"
+                           class="form-control"
+                           placeholder="Project name or client"
+                           value="{{ request('q') }}">
+                </div>
+
+                {{-- Client --}}
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Client</label>
+                    <select name="client" class="form-control">
+                        <option value="">All</option>
+                        <option value="MOH" {{ request('client')=='MOH' ? 'selected' : '' }}>MOH</option>
+                        <option value="Private" {{ request('client')=='Private' ? 'selected' : '' }}>Private</option>
+                    </select>
+                </div>
+
+                {{-- City --}}
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">City</label>
+                    <select name="city" class="form-control">
+                        <option value="">All</option>
+                        @foreach(['Riyadh','Jeddah','Makkah','Madinah','Tabuk','Asir','Hail','Najran','Al Jouf'] as $city)
+                            <option value="{{ $city }}"
+                                {{ request('city')==$city ? 'selected' : '' }}>
+                                {{ $city }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Actions --}}
+                <div class="col-md-2 mb-3 d-flex align-items-end gap-2">
+                    <button class="btn btn-primary w-100">
+                        Apply
+                    </button>
+
+                    <a href="{{ route('projects.index') }}"
+                       class="btn btn-outline-secondary w-100">
+                        Reset
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+  
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Projects List</h3>
 
-        @can('create projects')
-        <a href="{{ route('projects.create') }}" class="btn btn-primary">+ Add Project</a>
-        @endcan
+        @can('manage projects')
+<a href="{{ route('projects.create') }}" class="btn btn-primary">
+    + Add Project
+</a>
+@endcan
+
     </div>
 
     @if(session('success'))

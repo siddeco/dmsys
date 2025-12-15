@@ -14,10 +14,39 @@ class DeviceController extends Controller
     /**
      * قائمة الأجهزة
      */
-   public function index()
+   public function index(Request $request)
 {
-    $devices = Device::with('project')->paginate(10);
-    $projects = \App\Models\Project::all(); // <-- أضف هذا السطر
+   
+    $query = Device::with('project')
+        ->where('is_archived', false);
+
+    $devices = Device::with('project')
+    ->where('is_archived', false)
+    ->paginate(10);
+
+    // Search
+    if ($request->filled('q')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('serial_number', 'like', "%{$request->q}%")
+              ->orWhere('model', 'like', "%{$request->q}%")
+              ->orWhere('name->en', 'like', "%{$request->q}%")
+              ->orWhere('name->ar', 'like', "%{$request->q}%");
+        });
+    }
+
+     // Status
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // Project
+    if ($request->filled('project_id')) {
+        $query->where('project_id', $request->project_id);
+    }
+
+    $devices  = $query->paginate(10)->withQueryString();
+    $projects = Project::all();
+
 
     return view('devices.index', compact('devices', 'projects'));
 }
@@ -131,6 +160,62 @@ public function update(Request $request, $id)
         ->route('devices.index')
         ->with('success', 'Device created successfully.');
 }
+
+public function archive(Device $device)
+{
+    abort_unless(auth()->user()->can('manage devices'), 403);
+
+    $device->update([
+        'is_archived' => true,
+    ]);
+
+    return redirect()
+        ->route('devices.index')
+        ->with('success', 'Device archived successfully.');
+}
+
+public function restore(Device $device)
+{
+    abort_unless(auth()->user()->can('manage devices'), 403);
+
+    $device->update([
+        'is_archived' => false,
+        'archived_at' => null,
+    ]);
+
+    return redirect()
+        ->back()
+        ->with('success', 'Device restored successfully.');
+}
+
+public function archived(Request $request)
+{
+    abort_unless(auth()->user()->can('manage devices'), 403);
+
+    $query = Device::with('project')
+        ->where('is_archived', true);
+
+    // 🔍 Search
+    if ($request->filled('q')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('serial_number', 'like', "%{$request->q}%")
+              ->orWhere('model', 'like', "%{$request->q}%")
+              ->orWhere('name->en', 'like', "%{$request->q}%")
+              ->orWhere('name->ar', 'like', "%{$request->q}%");
+        });
+    }
+
+    // Project filter
+    if ($request->filled('project_id')) {
+        $query->where('project_id', $request->project_id);
+    }
+
+    $devices  = $query->latest()->paginate(10)->withQueryString();
+    $projects = Project::all();
+
+    return view('devices.archived', compact('devices', 'projects'));
+}
+
 
 
 }

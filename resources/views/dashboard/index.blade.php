@@ -234,6 +234,7 @@
                         <tr>
                             <th>Device</th>
                             <th>Project</th>
+                            <th>Location</th>
                             <th>Date</th>
                             <th></th>
                         </tr>
@@ -241,8 +242,9 @@
                     <tbody>
                         @forelse($latestOpenBreakdowns as $b)
                             <tr>
-                                <td>{{ $b->device->name['en'] ?? 'Device' }}</td>
+                                <td>{{ $b->device->name}}</td>
                                 <td>{{ $b->project->name ?? '-' }}</td>
+                                <td>{{ $b->device->location ?? '-' }}</td>
                                 <td>{{ $b->created_at->format('Y-m-d') }}</td>
                                 <td>
                                     <a href="{{ route('breakdowns.show', $b->id) }}"

@@ -20,7 +20,8 @@ class Device extends Model
         'installation_date',
         'status',
         'project_id',
-        'name'
+        'name',
+        'is_archived'
     ];
 
     
@@ -39,6 +40,16 @@ public function project()
 {
     return $this->belongsTo(Project::class);
 }
+
+protected $casts = [
+    'is_archived' => 'boolean',
+];
+
+public function scopeActive($query)
+{
+    return $query->where('is_archived', false);
+}
+
 
 
 

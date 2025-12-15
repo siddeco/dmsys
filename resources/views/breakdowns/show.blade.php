@@ -31,6 +31,7 @@
                     {{ $breakdown->project->name  }}
                 </div>
 
+                
                 <div class="col-md-6 mb-2">
                     <strong>Status:</strong><br>
                     <span class="badge
@@ -43,6 +44,11 @@
                         @endswitch">
                         {{ strtoupper($breakdown->status) }}
                     </span>
+                </div>
+
+                 <div class="col-md-6 mb-2">
+                    <strong>Location:</strong><br>
+                    {{ $breakdown->device->location  }}
                 </div>
 
                 <div class="col-md-6 mb-2">

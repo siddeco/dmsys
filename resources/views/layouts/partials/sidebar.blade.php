@@ -47,6 +47,15 @@
                 </li>
                 @endif
 
+                 @if(canView('manage devices'))
+                <li class="nav-item">
+    <a href="{{ route('devices.archived') }}" class="nav-link">
+        <i class="fas fa-archive"></i>
+        <p>Archived Devices</p>
+    </a>
+</li>
+@endif
+
 
                 {{-- ===========================
                      MODULES HEADER

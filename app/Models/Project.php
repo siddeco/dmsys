@@ -27,4 +27,10 @@ class Project extends Model
     {
         return $this->hasManyThrough(PmRecord::class, Device::class);
     }
+
+    public function documents()
+{
+    return $this->hasMany(ProjectDocument::class);
+}
+
 }

@@ -41,8 +41,22 @@ Route::middleware('auth')->group(function () {
     // Users
     Route::resource('users', \App\Http\Controllers\UserController::class);
 
+    
+
     // Projects
     Route::resource('projects', ProjectController::class);
+
+    // Device Archive
+
+    Route::get('/devices/archived', [DeviceController::class, 'archived'])
+    ->name('devices.archived');
+
+     Route::patch('/devices/{device}/archive', [DeviceController::class, 'archive'])
+    ->name('devices.archive');
+
+     Route::patch('/devices/{device}/restore', [DeviceController::class, 'restore'])
+    ->name('devices.restore');
+     
 
     // Devices
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
@@ -50,6 +64,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/devices/store', [DeviceController::class, 'store'])->name('devices.store');
     Route::get('/devices/{id}/edit', [DeviceController::class, 'edit'])->name('devices.edit');
     Route::put('/devices/{id}', [DeviceController::class, 'update'])->name('devices.update');
+
+   
+
+
+
 
     // PM Plans
     Route::get('/pm-plans', [PmPlanController::class, 'index'])->name('pm.plans.index');
