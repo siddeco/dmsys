@@ -8,7 +8,8 @@ use App\Http\Controllers\PmRecordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\BreakdownController;
-use App\Http\Controllers\SparePartController;
+use App\Http\Controllers\ProjectDocumentController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -41,22 +42,52 @@ Route::middleware('auth')->group(function () {
     // Users
     Route::resource('users', \App\Http\Controllers\UserController::class);
 
-    
+
 
     // Projects
     Route::resource('projects', ProjectController::class);
 
+    // ===============================
+// Project Documents
+// ===============================
+    Route::prefix('projects/{project}')->group(function () {
+
+        Route::get('documents', [ProjectDocumentController::class, 'index'])
+            ->name('projects.documents.index');
+
+        Route::post('documents', [ProjectDocumentController::class, 'store'])
+            ->name('projects.documents.store');
+
+        Route::get('documents/{document}/download', [ProjectDocumentController::class, 'download'])
+            ->name('projects.documents.download');
+
+        Route::patch('documents/{document}/archive', [ProjectDocumentController::class, 'archive'])
+            ->name('projects.documents.archive');
+
+        Route::patch('documents/{document}/restore', [ProjectDocumentController::class, 'restore'])
+            ->name('projects.documents.restore');
+
+        Route::delete('documents/{document}', [ProjectDocumentController::class, 'destroy'])
+            ->name('projects.documents.destroy');
+
+    });
+
+
+
+
+
+
     // Device Archive
 
     Route::get('/devices/archived', [DeviceController::class, 'archived'])
-    ->name('devices.archived');
+        ->name('devices.archived');
 
-     Route::patch('/devices/{device}/archive', [DeviceController::class, 'archive'])
-    ->name('devices.archive');
+    Route::patch('/devices/{device}/archive', [DeviceController::class, 'archive'])
+        ->name('devices.archive');
 
-     Route::patch('/devices/{device}/restore', [DeviceController::class, 'restore'])
-    ->name('devices.restore');
-     
+    Route::patch('/devices/{device}/restore', [DeviceController::class, 'restore'])
+        ->name('devices.restore');
+
 
     // Devices
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
@@ -65,7 +96,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/devices/{id}/edit', [DeviceController::class, 'edit'])->name('devices.edit');
     Route::put('/devices/{id}', [DeviceController::class, 'update'])->name('devices.update');
 
-   
+
 
 
 
@@ -77,13 +108,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/pm-plans/{id}', [PmPlanController::class, 'show'])->name('pm.plans.show');
 
     Route::post('/pm-plans/{plan}/assign', [PmPlanController::class, 'assign'])
-    ->name('pm.plans.assign');
+        ->name('pm.plans.assign');
 
-Route::post('/pm-plans/{plan}/start', [PmPlanController::class, 'start'])
-    ->name('pm.plans.start');
+    Route::post('/pm-plans/{plan}/start', [PmPlanController::class, 'start'])
+        ->name('pm.plans.start');
 
-Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
-    ->name('pm.plans.complete');
+    Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
+        ->name('pm.plans.complete');
 
 
     // PM Records
@@ -97,17 +128,17 @@ Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
     Route::post('/breakdowns/store', [BreakdownController::class, 'store'])->name('breakdowns.store');
     Route::get('/breakdowns/{id}', [BreakdownController::class, 'show'])->name('breakdowns.show');
     // Workflow actions
-Route::post('/breakdowns/{breakdown}/assign', [BreakdownController::class, 'assign'])
-    ->name('breakdowns.assign');
+    Route::post('/breakdowns/{breakdown}/assign', [BreakdownController::class, 'assign'])
+        ->name('breakdowns.assign');
 
-Route::post('/breakdowns/{breakdown}/start', [BreakdownController::class, 'start'])
-    ->name('breakdowns.start');
+    Route::post('/breakdowns/{breakdown}/start', [BreakdownController::class, 'start'])
+        ->name('breakdowns.start');
 
-Route::post('/breakdowns/{breakdown}/resolve', [BreakdownController::class, 'resolve'])
-    ->name('breakdowns.resolve');
+    Route::post('/breakdowns/{breakdown}/resolve', [BreakdownController::class, 'resolve'])
+        ->name('breakdowns.resolve');
 
-Route::post('/breakdowns/{breakdown}/close', [BreakdownController::class, 'close'])
-    ->name('breakdowns.close');
+    Route::post('/breakdowns/{breakdown}/close', [BreakdownController::class, 'close'])
+        ->name('breakdowns.close');
 
 
 
@@ -127,4 +158,4 @@ Route::post('/breakdowns/{breakdown}/close', [BreakdownController::class, 'close
 
 
 // Breeze authentication routes
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
