@@ -7,27 +7,51 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SparePart extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'name',
         'part_number',
         'manufacturer',
-        'device_id',
+        'category',
         'quantity',
+        'min_quantity',
+        'unit',
+        'location',
+        'notes',
         'alert_threshold',
-        'description',
     ];
 
-    // القطعة قد تكون مرتبطة بجهاز
+    public function transactions()
+    {
+        return $this->hasMany(SparePartTransaction::class);
+    }
+
+    public function usages()
+    {
+        return $this->hasMany(SparePartUsage::class);
+    }
+
     public function device()
     {
         return $this->belongsTo(Device::class);
     }
 
-    // هل وصلت للحد الأدنى؟
-    public function isLow()
+    public function isLow(): bool
     {
+        if ($this->alert_threshold === null) {
+            return false;
+        }
+
         return $this->quantity <= $this->alert_threshold;
     }
+
+    public function isOutOfStock(): bool
+    {
+        return $this->quantity <= 0;
+    }
+
+
+
+
 }
+
+

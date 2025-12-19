@@ -9,6 +9,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\BreakdownController;
 use App\Http\Controllers\ProjectDocumentController;
+use App\Http\Controllers\SparePartTransactionController;
+use App\Http\Controllers\SparePartController;
+use App\Http\Controllers\Reports\SparePartReportController;
 
 
 /*
@@ -116,11 +119,38 @@ Route::middleware('auth')->group(function () {
     Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
         ->name('pm.plans.complete');
 
+    Route::post('pm/plans/bulk', [PmPlanController::class, 'bulk'])
+        ->name('pm.plans.bulk')
+        ->middleware('can:manage pm');
+
+
+    Route::prefix('pm-plans')->name('pm.plans.')->group(function () {
+        Route::get('{plan}/edit', [PmPlanController::class, 'edit'])->name('edit');
+        Route::put('{plan}', [PmPlanController::class, 'update'])->name('update');
+
+    });
+
+
 
     // PM Records
-    Route::get('/pm-plans/{plan_id}/records', [PmRecordController::class, 'index'])->name('pm.records.index');
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('/pm/records', [PmRecordController::class, 'index'])
+            ->name('pm.records.index')
+            ->middleware('can:manage pm');
+
+    });
+
+    Route::get(
+        '/pm/records/{record}',
+        [PmRecordController::class, 'show']
+    )->name('pm.records.show')
+        ->middleware(['auth', 'can:manage pm']);
+
+
     Route::get('/pm-plans/{plan_id}/records/create', [PmRecordController::class, 'create'])->name('pm.records.create');
     Route::post('/pm-plans/{plan_id}/records/store', [PmRecordController::class, 'store'])->name('pm.records.store');
+
 
     // Breakdowns
     Route::get('/breakdowns', [BreakdownController::class, 'index'])->name('breakdowns.index');
@@ -140,6 +170,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/breakdowns/{breakdown}/close', [BreakdownController::class, 'close'])
         ->name('breakdowns.close');
 
+    // routes/web.php
+    Route::post(
+        '/breakdowns/{breakdown}/spare-parts/issue',
+        [BreakdownController::class, 'issueSparePart']
+    )->name('breakdowns.issue-part');
+
+    Route::post(
+        '/breakdowns/{breakdown}/spare-parts/return',
+        [BreakdownController::class, 'returnSparePart']
+    )->name('breakdowns.return-part');
+
+
+
+
+
+
+
+
+
 
 
     // Spare Parts
@@ -150,11 +199,41 @@ Route::middleware('auth')->group(function () {
     Route::post('/spare-parts/{id}/update', [SparePartController::class, 'update'])->name('spare_parts.update');
     Route::delete('/spare-parts/{id}', [SparePartController::class, 'destroy'])->name('spare_parts.delete');
 
+    Route::get('/spare-parts/{sparePart}/transactions', [SparePartTransactionController::class, 'index'])
+        ->name('spare_parts.transactions.index');
+
+    Route::post('/spare-parts/{sparePart}/transactions/in', [SparePartTransactionController::class, 'storeIn'])
+        ->name('spare_parts.transactions.in');
+
+    Route::post('/spare-parts/{sparePart}/transactions/out', [SparePartTransactionController::class, 'storeOut'])
+        ->name('spare_parts.transactions.out');
+
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/reports/spare-parts', [SparePartReportController::class, 'index'])
+            ->name('reports.spare-parts');
+    });
+
+    Route::get(
+        '/reports/spare-parts/export',
+        [SparePartReportController::class, 'export']
+    )->name('reports.spare-parts.export');
+
+
+    Route::get(
+        '/reports/spare-parts/export/pdf',
+        [SparePartReportController::class, 'exportPdf']
+    )->name('reports.spare-parts.export.pdf');
+
+
+
+
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
 
 
 // Breeze authentication routes

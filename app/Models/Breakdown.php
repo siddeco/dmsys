@@ -10,17 +10,22 @@ class Breakdown extends Model
     use HasFactory;
 
     protected $fillable = [
-    'device_id',
-    'project_id',
-    'reported_by',
-    'assigned_to',
-    'title',
-    'description',
-    'status',
-    'reported_at',
-    'engineer_report',
-    'completed_at',
-];
+        'device_id',
+        'project_id',
+        'reported_by',
+        'assigned_to',
+        'title',
+        'description',
+        'status',
+        'reported_at',
+        'engineer_report',
+        'completed_at',
+    ];
+
+    protected $casts = [
+        'completed_at' => 'datetime',
+    ];
+
 
     /**
      * الجهاز المرتبط بالبلاغ
@@ -47,19 +52,49 @@ class Breakdown extends Model
     }
 
     public function reporter()
-{
-    return $this->belongsTo(User::class, 'reported_by');
-}
+    {
+        return $this->belongsTo(User::class, 'reported_by');
+    }
 
-public function assignee()
-{
-    return $this->belongsTo(User::class, 'assigned_to');
-}
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 
-public function assignedUser()
-{
-    return $this->belongsTo(User::class, 'assigned_to');
-}
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function pmRecord()
+    {
+        return $this->belongsTo(PmRecord::class);
+    }
+
+
+    public function logs()
+    {
+        return $this->hasMany(BreakdownLog::class)->latest();
+    }
+
+    public function sparePartTransactions()
+    {
+        return $this->hasMany(SparePartTransaction::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(SparePartTransaction::class);
+    }
+
+    public function sparePartUsages()
+    {
+        return $this->hasMany(SparePartUsage::class);
+    }
+
+
+
+
 
 
 }

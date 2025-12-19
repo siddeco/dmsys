@@ -12,23 +12,23 @@ class SparePartController extends Controller
      * عرض قائمة القطع
      */
     public function index(Request $request)
-{
-     $query = SparePart::with('device');
+    {
+        $query = SparePart::with('device');
 
-    // 🔴 Low Stock
-    if ($request->get('low_stock')) {
-        $query->whereColumn('quantity', '<=', 'alert_threshold');
+        // 🔴 Low Stock
+        if ($request->get('low_stock')) {
+            $query->whereColumn('quantity', '<=', 'alert_threshold');
+        }
+
+        // 🔴 Out of Stock
+        if ($request->get('out_of_stock')) {
+            $query->where('quantity', 0);
+        }
+
+        $parts = $query->latest()->paginate(10);
+
+        return view('spare_parts.index', compact('parts'));
     }
-
-    // 🔴 Out of Stock
-    if ($request->get('out_of_stock')) {
-        $query->where('quantity', 0);
-    }
-
-    $parts = $query->latest()->paginate(10);
-
-    return view('spare_parts.index', compact('parts'));
-}
 
 
     /**
@@ -36,6 +36,7 @@ class SparePartController extends Controller
      */
     public function create()
     {
+
         $devices = Device::all();
         return view('spare_parts.create', compact('devices'));
     }
@@ -46,13 +47,13 @@ class SparePartController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'            => 'required|string',
-            'part_number'     => 'nullable|string',
-            'manufacturer'    => 'nullable|string',
-            'device_id'       => 'nullable|exists:devices,id',
-            'quantity'        => 'required|integer|min:0',
+            'name' => 'required|string',
+            'part_number' => 'nullable|string',
+            'manufacturer' => 'nullable|string',
+            'device_id' => 'nullable|exists:devices,id',
+            'quantity' => 'required|integer|min:0',
             'alert_threshold' => 'required|integer|min:0',
-            'description'     => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         SparePart::create($validated);
@@ -80,13 +81,13 @@ class SparePartController extends Controller
         $part = SparePart::findOrFail($id);
 
         $validated = $request->validate([
-            'name'            => 'required|string',
-            'part_number'     => 'nullable|string',
-            'manufacturer'    => 'nullable|string',
-            'device_id'       => 'nullable|exists:devices,id',
-            'quantity'        => 'required|integer|min:0',
+            'name' => 'required|string',
+            'part_number' => 'nullable|string',
+            'manufacturer' => 'nullable|string',
+            'device_id' => 'nullable|exists:devices,id',
+            'quantity' => 'required|integer|min:0',
             'alert_threshold' => 'required|integer|min:0',
-            'description'     => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         $part->update($validated);
@@ -105,4 +106,6 @@ class SparePartController extends Controller
         return redirect()->route('spare_parts.index')
             ->with('success', 'Spare part deleted.');
     }
+
+
 }

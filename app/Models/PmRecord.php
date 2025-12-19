@@ -31,9 +31,9 @@ class PmRecord extends Model
     /**
      * علاقة مع خطة الصيانة
      */
-    public function plan()
+    public function pmPlan()
     {
-        return $this->belongsTo(PmPlan::class, 'pm_plan_id');
+        return $this->belongsTo(\App\Models\PmPlan::class);
     }
 
     /**
@@ -60,10 +60,22 @@ class PmRecord extends Model
     public function getStatusLabelAttribute()
     {
         return match ($this->status) {
-            'ok'           => 'OK - Working Fine',
-            'needs_parts'  => 'Needs Spare Parts',
-            'critical'     => 'Critical - Requires Intervention',
-            default        => 'Unknown',
+            'ok' => 'OK - Working Fine',
+            'needs_parts' => 'Needs Spare Parts',
+            'critical' => 'Critical - Requires Intervention',
+            default => 'Unknown',
         };
     }
+
+    public function breakdown()
+    {
+        return $this->hasOne(Breakdown::class);
+    }
+
+    public function sparePartUsages()
+    {
+        return $this->hasMany(SparePartUsage::class);
+    }
+
+
 }

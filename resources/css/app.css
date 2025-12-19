@@ -2,3 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 @import "admin-lte/dist/css/adminlte.min.css";
+
+.brand-link {
+    padding: 12px 16px;
+}
+
+.brand-image {
+    border-radius: 6px;
+}
+
+.pm-status {
+    min-width: 90px;
+    display: inline-block;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.badge-overdue {
+    background-color: #dc3545;
+    /* red */
+}
+
+.badge-due-soon {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-pending {
+    background-color: #6c757d;
+}
+
+.badge-in-progress {
+    background-color: #0d6efd;
+}
+
+.badge-done {
+    background-color: #198754;
+}
+
+.btn-sm {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.35em 0.6em;
+    border-radius: 6px;
+    width: fit-content;
+}
