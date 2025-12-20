@@ -7,7 +7,7 @@ use App\Models\Project;
 use App\Models\SparePart;
 use App\Models\SparePartUsage;
 use Illuminate\Http\Request;
-use App\Exports\SparePartsConsumptionExport;
+use App\Exports\SparePartConsumptionExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -71,11 +71,11 @@ class SparePartReportController extends Controller
         ));
     }
 
-    public function export(Request $request)
+    public function exportExcel(Request $request)
     {
         return Excel::download(
-            new SparePartsConsumptionExport($request->all()),
-            'spare_parts_consumption.xlsx'
+            new SparePartConsumptionExport($request->all()),
+            'spare_parts_consumption_' . now()->format('Ymd_His') . '.xlsx'
         );
     }
 
@@ -86,36 +86,45 @@ class SparePartReportController extends Controller
     {
         $query = SparePartUsage::with([
             'sparePart',
-            'breakdown.project',
+            'breakdown',
             'performer'
-        ]);
+        ])->latest();
 
-        if ($request->filled('from')) {
-            $query->whereDate('created_at', '>=', $request->from);
-        }
-
-        if ($request->filled('to')) {
-            $query->whereDate('created_at', '<=', $request->to);
-        }
-
-        if ($request->filled('project_id')) {
-            $query->whereHas(
-                'breakdown',
-                fn($q) =>
-                $q->where('project_id', $request->project_id)
-            );
-        }
-
+        // Filters
         if ($request->filled('spare_part_id')) {
             $query->where('spare_part_id', $request->spare_part_id);
         }
 
-        $rows = $query->latest()->get();
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
 
-        $pdf = Pdf::loadView('reports.spare-parts.pdf', compact('rows'))
-            ->setPaper('a4', 'portrait');
+        if ($request->filled('performed_by')) {
+            $query->where('performed_by', $request->performed_by);
+        }
 
-        return $pdf->download('spare_parts_consumption.pdf');
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        $usages = $query->get();
+
+        $pdf = Pdf::loadView(
+            'reports.spare-parts.exports.pdf',
+            [
+                'usages' => $usages,
+                'generatedAt' => now(),
+                'company' => config('app.name')
+            ]
+        )->setPaper('A4', 'landscape');
+
+        return $pdf->download(
+            'spare_parts_consumption_' . now()->format('Ymd_His') . '.pdf'
+        );
     }
 
 }

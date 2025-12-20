@@ -12,6 +12,8 @@ use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\SparePartTransactionController;
 use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\Reports\SparePartReportController;
+use App\Http\Controllers\Reports\SparePartConsumptionController;
+
 
 
 /*
@@ -214,15 +216,26 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get(
-        '/reports/spare-parts/export',
-        [SparePartReportController::class, 'export']
-    )->name('reports.spare-parts.export');
+        'reports/spare-parts/consumption/export/excel',
+        [SparePartReportController::class, 'exportExcel']
+    )->name('reports.spare-parts.consumption.export.excel');
 
 
     Route::get(
-        '/reports/spare-parts/export/pdf',
+        'reports/spare-parts/consumption/export/pdf',
         [SparePartReportController::class, 'exportPdf']
-    )->name('reports.spare-parts.export.pdf');
+    )->name('reports.spare-parts.consumption.export.pdf');
+
+
+    Route::prefix('reports')->middleware(['auth'])->group(function () {
+
+        Route::get(
+            'spare-parts/consumption',
+            [SparePartConsumptionController::class, 'index']
+        )->name('reports.spare-parts.consumption');
+
+    });
+
 
 
 

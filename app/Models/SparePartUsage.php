@@ -38,4 +38,16 @@ class SparePartUsage extends Model
     {
         return $this->belongsTo(User::class, 'performed_by');
     }
+
+    /* ================= HELPERS ================= */
+
+    public function isIssue(): bool
+    {
+        return $this->type === 'issue';
+    }
+
+    public function isReturn(): bool
+    {
+        return $this->type === 'return';
+    }
 }
