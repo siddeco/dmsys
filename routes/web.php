@@ -1,31 +1,30 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DeviceController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PmPlanController;
-use App\Http\Controllers\PmRecordController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\BreakdownController;
-use App\Http\Controllers\ProjectDocumentController;
-use App\Http\Controllers\SparePartTransactionController;
-use App\Http\Controllers\SparePartController;
-use App\Http\Controllers\Reports\SparePartReportController;
-use App\Http\Controllers\Reports\SparePartConsumptionController;
-
-
+use App\Http\Controllers\{
+    DashboardController,
+    DeviceController,
+    ProjectController,
+    PmPlanController,
+    PmRecordController,
+    BreakdownController,
+    SparePartController,
+    SparePartTransactionController,
+    UserController,
+    ProfileController
+};
+use App\Http\Controllers\Reports\{
+    SparePartReportController,
+    SparePartConsumptionController
+};
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| هنا تعريف المسارات الخاصة بالموقع
-|
 */
 
-// الصفحة الرئيسية → إعادة توجيه إلى لوحة التحكم
+// الصفحة الرئيسية
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
@@ -36,218 +35,163 @@ Route::get('/lang/{lang}', function ($lang) {
     return back();
 })->name('lang.switch');
 
-
-// جميع المسارات التالية للمستخدمين المسجّلين فقط
+// ==================== AUTHENTICATED ROUTES ====================
 Route::middleware('auth')->group(function () {
 
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    // ==================== DASHBOARD ====================
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    // Users
-    Route::resource('users', \App\Http\Controllers\UserController::class);
+    // ==================== DEVICES ====================
+    Route::prefix('devices')->name('devices.')->group(function () {
+        // المسارات العامة (بدون معاملات)
+        Route::get('/', [DeviceController::class, 'index'])->name('index');
+        Route::get('/create', [DeviceController::class, 'create'])->name('create');
+        Route::get('/archived', [DeviceController::class, 'archived'])->name('archived');
+        Route::post('/', [DeviceController::class, 'store'])->name('store');
 
+        // المسارات التي تتطلب معامل (ID جهاز) مع تحقق أنه رقم
+        Route::get('/{device}', [DeviceController::class, 'show'])
+            ->whereNumber('device')
+            ->name('show');
 
+        Route::get('/{device}/edit', [DeviceController::class, 'edit'])
+            ->whereNumber('device')
+            ->name('edit');
 
-    // Projects
-    Route::resource('projects', ProjectController::class);
+        Route::put('/{device}', [DeviceController::class, 'update'])
+            ->whereNumber('device')
+            ->name('update');
 
-    // ===============================
-// Project Documents
-// ===============================
-    Route::prefix('projects/{project}')->group(function () {
+        Route::patch('/{device}/archive', [DeviceController::class, 'archive'])
+            ->whereNumber('device')
+            ->name('archive');
 
-        Route::get('documents', [ProjectDocumentController::class, 'index'])
-            ->name('projects.documents.index');
+        Route::patch('/{device}/restore', [DeviceController::class, 'restore'])
+            ->whereNumber('device')
+            ->name('restore');
 
-        Route::post('documents', [ProjectDocumentController::class, 'store'])
-            ->name('projects.documents.store');
-
-        Route::get('documents/{document}/download', [ProjectDocumentController::class, 'download'])
-            ->name('projects.documents.download');
-
-        Route::patch('documents/{document}/archive', [ProjectDocumentController::class, 'archive'])
-            ->name('projects.documents.archive');
-
-        Route::patch('documents/{document}/restore', [ProjectDocumentController::class, 'restore'])
-            ->name('projects.documents.restore');
-
-        Route::delete('documents/{document}', [ProjectDocumentController::class, 'destroy'])
-            ->name('projects.documents.destroy');
-
+        // استعادة أجهزة متعددة (إذا أردت)
+        Route::post('/bulk-restore', [DeviceController::class, 'bulkRestore'])
+            ->name('bulk-restore');
     });
 
 
+    // ==================== PROJECTS ====================
+    Route::prefix('projects')->name('projects.')->group(function () {
+        // المسارات العامة
+        Route::get('/', [ProjectController::class, 'index'])->name('index');
+        Route::get('/create', [ProjectController::class, 'create'])->name('create');
+        Route::get('/completed', [ProjectController::class, 'completed'])->name('completed');
+        Route::get('/overdue', [ProjectController::class, 'overdue'])->name('overdue');
+        Route::post('/', [ProjectController::class, 'store'])->name('store');
 
+        // المسارات التي تتطلب معامل (ID مشروع)
+        Route::get('/{project}', [ProjectController::class, 'show'])
+            ->whereNumber('project')
+            ->name('show');
 
+        Route::get('/{project}/edit', [ProjectController::class, 'edit'])
+            ->whereNumber('project')
+            ->name('edit');
 
+        Route::put('/{project}', [ProjectController::class, 'update'])
+            ->whereNumber('project')
+            ->name('update');
 
-    // Device Archive
+        Route::delete('/{project}', [ProjectController::class, 'destroy'])
+            ->whereNumber('project')
+            ->name('destroy');
 
-    Route::get('/devices/archived', [DeviceController::class, 'archived'])
-        ->name('devices.archived');
+        // تحديثات جزئية
+        Route::patch('/{project}/status', [ProjectController::class, 'updateStatus'])
+            ->whereNumber('project')
+            ->name('update-status');
 
-    Route::patch('/devices/{device}/archive', [DeviceController::class, 'archive'])
-        ->name('devices.archive');
+        Route::patch('/{project}/budget', [ProjectController::class, 'updateBudget'])
+            ->whereNumber('project')
+            ->name('update-budget');
 
-    Route::patch('/devices/{device}/restore', [DeviceController::class, 'restore'])
-        ->name('devices.restore');
+        Route::patch('/{project}/restore', [ProjectController::class, 'restore'])
+            ->whereNumber('project')
+            ->name('restore');
+    });
 
-
-    // Devices
-    Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
-    Route::get('/devices/create', [DeviceController::class, 'create'])->name('devices.create');
-    Route::post('/devices/store', [DeviceController::class, 'store'])->name('devices.store');
-    Route::get('/devices/{id}/edit', [DeviceController::class, 'edit'])->name('devices.edit');
-    Route::put('/devices/{id}', [DeviceController::class, 'update'])->name('devices.update');
-
-
-
-
-
-
-    // PM Plans
-    Route::get('/pm-plans', [PmPlanController::class, 'index'])->name('pm.plans.index');
-    Route::get('/pm-plans/create', [PmPlanController::class, 'create'])->name('pm.plans.create');
-    Route::post('/pm-plans/store', [PmPlanController::class, 'store'])->name('pm.plans.store');
-    Route::get('/pm-plans/{id}', [PmPlanController::class, 'show'])->name('pm.plans.show');
-
-    Route::post('/pm-plans/{plan}/assign', [PmPlanController::class, 'assign'])
-        ->name('pm.plans.assign');
-
-    Route::post('/pm-plans/{plan}/start', [PmPlanController::class, 'start'])
-        ->name('pm.plans.start');
-
-    Route::post('/pm-plans/{plan}/complete', [PmPlanController::class, 'complete'])
-        ->name('pm.plans.complete');
-
-    Route::post('pm/plans/bulk', [PmPlanController::class, 'bulk'])
-        ->name('pm.plans.bulk')
-        ->middleware('can:manage pm');
-
-
+    // ==================== PM PLANS ====================
     Route::prefix('pm-plans')->name('pm.plans.')->group(function () {
-        Route::get('{plan}/edit', [PmPlanController::class, 'edit'])->name('edit');
-        Route::put('{plan}', [PmPlanController::class, 'update'])->name('update');
-
+        Route::get('/', [PmPlanController::class, 'index'])->name('index');
+        Route::get('/create', [PmPlanController::class, 'create'])->name('create');
+        Route::post('/', [PmPlanController::class, 'store'])->name('store');
+        Route::get('/{pmPlan}', [PmPlanController::class, 'show'])->name('show');
+        Route::get('/{pmPlan}/edit', [PmPlanController::class, 'edit'])->name('edit');
+        Route::put('/{pmPlan}', [PmPlanController::class, 'update'])->name('update');
+        Route::post('/{pmPlan}/assign', [PmPlanController::class, 'assign'])->name('assign');
+        Route::post('/{pmPlan}/start', [PmPlanController::class, 'start'])->name('start');
+        Route::post('/{pmPlan}/complete', [PmPlanController::class, 'complete'])->name('complete');
+        Route::post('/bulk', [PmPlanController::class, 'bulk'])->name('bulk');
     });
 
-
-
-    // PM Records
-    Route::middleware(['auth'])->group(function () {
-
-        Route::get('/pm/records', [PmRecordController::class, 'index'])
-            ->name('pm.records.index')
-            ->middleware('can:manage pm');
-
+    // ==================== BREAKDOWNS ====================
+    Route::prefix('breakdowns')->name('breakdowns.')->group(function () {
+        Route::get('/', [BreakdownController::class, 'index'])->name('index');
+        Route::get('/create', [BreakdownController::class, 'create'])->name('create');
+        Route::post('/', [BreakdownController::class, 'store'])->name('store');
+        Route::get('/{breakdown}', [BreakdownController::class, 'show'])->name('show');
+        Route::post('/{breakdown}/assign', [BreakdownController::class, 'assign'])->name('assign');
+        Route::post('/{breakdown}/start', [BreakdownController::class, 'start'])->name('start');
+        Route::post('/{breakdown}/resolve', [BreakdownController::class, 'resolve'])->name('resolve');
+        Route::post('/{breakdown}/close', [BreakdownController::class, 'close'])->name('close');
     });
 
-    Route::get(
-        '/pm/records/{record}',
-        [PmRecordController::class, 'show']
-    )->name('pm.records.show')
-        ->middleware(['auth', 'can:manage pm']);
+    // ==================== SPARE PARTS ====================
+    Route::prefix('spare-parts')->name('spare_parts.')->group(function () {
+        Route::get('/', [SparePartController::class, 'index'])->name('index');
+        Route::get('/create', [SparePartController::class, 'create'])->name('create');
+        Route::post('/', [SparePartController::class, 'store'])->name('store');
+        Route::get('/{sparePart}/edit', [SparePartController::class, 'edit'])->name('edit');
+        Route::put('/{sparePart}', [SparePartController::class, 'update'])->name('update');
+        Route::delete('/{sparePart}', [SparePartController::class, 'destroy'])->name('destroy');
 
-
-    Route::get('/pm-plans/{plan_id}/records/create', [PmRecordController::class, 'create'])->name('pm.records.create');
-    Route::post('/pm-plans/{plan_id}/records/store', [PmRecordController::class, 'store'])->name('pm.records.store');
-
-
-    // Breakdowns
-    Route::get('/breakdowns', [BreakdownController::class, 'index'])->name('breakdowns.index');
-    Route::get('/breakdowns/create', [BreakdownController::class, 'create'])->name('breakdowns.create');
-    Route::post('/breakdowns/store', [BreakdownController::class, 'store'])->name('breakdowns.store');
-    Route::get('/breakdowns/{id}', [BreakdownController::class, 'show'])->name('breakdowns.show');
-    // Workflow actions
-    Route::post('/breakdowns/{breakdown}/assign', [BreakdownController::class, 'assign'])
-        ->name('breakdowns.assign');
-
-    Route::post('/breakdowns/{breakdown}/start', [BreakdownController::class, 'start'])
-        ->name('breakdowns.start');
-
-    Route::post('/breakdowns/{breakdown}/resolve', [BreakdownController::class, 'resolve'])
-        ->name('breakdowns.resolve');
-
-    Route::post('/breakdowns/{breakdown}/close', [BreakdownController::class, 'close'])
-        ->name('breakdowns.close');
-
-    // routes/web.php
-    Route::post(
-        '/breakdowns/{breakdown}/spare-parts/issue',
-        [BreakdownController::class, 'issueSparePart']
-    )->name('breakdowns.issue-part');
-
-    Route::post(
-        '/breakdowns/{breakdown}/spare-parts/return',
-        [BreakdownController::class, 'returnSparePart']
-    )->name('breakdowns.return-part');
-
-
-
-
-
-
-
-
-
-
-
-    // Spare Parts
-    Route::get('/spare-parts', [SparePartController::class, 'index'])->name('spare_parts.index');
-    Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare_parts.create');
-    Route::post('/spare-parts/store', [SparePartController::class, 'store'])->name('spare_parts.store');
-    Route::get('/spare-parts/{id}/edit', [SparePartController::class, 'edit'])->name('spare_parts.edit');
-    Route::post('/spare-parts/{id}/update', [SparePartController::class, 'update'])->name('spare_parts.update');
-    Route::delete('/spare-parts/{id}', [SparePartController::class, 'destroy'])->name('spare_parts.delete');
-
-    Route::get('/spare-parts/{sparePart}/transactions', [SparePartTransactionController::class, 'index'])
-        ->name('spare_parts.transactions.index');
-
-    Route::post('/spare-parts/{sparePart}/transactions/in', [SparePartTransactionController::class, 'storeIn'])
-        ->name('spare_parts.transactions.in');
-
-    Route::post('/spare-parts/{sparePart}/transactions/out', [SparePartTransactionController::class, 'storeOut'])
-        ->name('spare_parts.transactions.out');
-
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/reports/spare-parts', [SparePartReportController::class, 'index'])
-            ->name('reports.spare-parts');
+        // معاملات قطع الغيار
+        Route::get('/{sparePart}/transactions', [SparePartTransactionController::class, 'index'])
+            ->name('transactions.index');
+        Route::post('/{sparePart}/transactions/in', [SparePartTransactionController::class, 'storeIn'])
+            ->name('transactions.in');
+        Route::post('/{sparePart}/transactions/out', [SparePartTransactionController::class, 'storeOut'])
+            ->name('transactions.out');
     });
 
-    Route::get(
-        'reports/spare-parts/consumption/export/excel',
-        [SparePartReportController::class, 'exportExcel']
-    )->name('reports.spare-parts.consumption.export.excel');
+    // ⭐⭐⭐⭐ القسم الصحيح للتقارير ⭐⭐⭐⭐
+    // ==================== REPORTS ====================
+    Route::prefix('reports')->name('reports.')->group(function () {
+        // تقرير قطع الغيار الرئيسي
+        Route::get('/spare-parts', [SparePartReportController::class, 'index'])
+            ->name('spare-parts'); // المسار: /reports/spare-parts
 
+        // استهلاك قطع الغيار
+        Route::get('/spare-parts/consumption', [SparePartConsumptionController::class, 'index'])
+            ->name('spare-parts.consumption'); // المسار: /reports/spare-parts/consumption
 
-    Route::get(
-        'reports/spare-parts/consumption/export/pdf',
-        [SparePartReportController::class, 'exportPdf']
-    )->name('reports.spare-parts.consumption.export.pdf');
+        // تصدير Excel
+        Route::get('/spare-parts/consumption/export/excel', [SparePartReportController::class, 'exportExcel'])
+            ->name('spare-parts.consumption.export.excel');
 
-
-    Route::prefix('reports')->middleware(['auth'])->group(function () {
-
-        Route::get(
-            'spare-parts/consumption',
-            [SparePartConsumptionController::class, 'index']
-        )->name('reports.spare-parts.consumption');
-
+        // تصدير PDF
+        Route::get('/spare-parts/consumption/export/pdf', [SparePartReportController::class, 'exportPdf'])
+            ->name('spare-parts.consumption.export.pdf');
     });
 
+    // ==================== USERS ====================
+    Route::resource('users', UserController::class)->except(['show']);
 
+    // تبديل حالة المستخدم
+    Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])
+        ->name('users.toggle');
 
-
-
-
-    // Profile
+    // ==================== PROFILE ====================
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-
-
-// Breeze authentication routes
+// ==================== AUTH ROUTES ====================
 require __DIR__ . '/auth.php';

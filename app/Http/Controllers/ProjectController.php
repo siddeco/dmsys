@@ -1,177 +1,422 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\ProjectDocument;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
+    /**
+     * قائمة المشاريع
+     */
     public function index(Request $request)
     {
-        $query = Project::withCount([
-            'devices' => function ($q) {
-                $q->where('is_archived', false);
-            }
-        ]);
+        $query = Project::with(['client', 'manager']);
 
         // 🔍 Search
         if ($request->filled('q')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->q}%")
-                    ->orWhere('client', 'like', "%{$request->q}%");
+            $search = $request->q;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('client_name', 'like', "%{$search}%")
+                    ->orWhere('contract_number', 'like', "%{$search}%");
             });
         }
 
-        // 🏢 Client filter
-        if ($request->filled('client')) {
-            $query->where('client', $request->client);
+        // 📊 Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
-        // 🌍 City filter
-        if ($request->filled('city')) {
-            $query->where('city', $request->city);
+        // 🏷️ Priority filter
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
         }
 
-        $projects = $query
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        // 🏢 Region filter
+        if ($request->filled('region')) {
+            $query->where('region', $request->region);
+        }
 
-        return view('projects.index', compact('projects'));
+        // 👥 Client type filter
+        if ($request->filled('client_type')) {
+            $query->where('client_type', $request->client_type);
+        }
+
+        // 📅 Sort
+        $sort = $request->get('sort', 'created_at');
+        $order = $request->get('order', 'desc');
+        $query->orderBy($sort, $order);
+
+        $projects = $query->paginate(15)->withQueryString();
+
+        // إحصائيات
+        $stats = [
+            'total' => Project::count(),
+            'active' => Project::where('status', 'active')->count(),
+            'completed' => Project::where('status', 'completed')->count(),
+            'overdue' => Project::overdue()->count(),
+            'ending_soon' => Project::endingSoon()->count(),
+        ];
+
+        return view('projects.index', compact('projects', 'stats'));
     }
 
-
+    /**
+     * صفحة إضافة مشروع جديد
+     */
     public function create()
     {
-        return view('projects.create');
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        $clients = User::whereHas('roles', function ($query) {
+            $query->where('name', 'client');
+        })->get();
+
+        $managers = User::whereHas('roles', function ($query) {
+            $query->whereIn('name', ['manager', 'admin', 'supervisor']);
+        })->get();
+
+        return view('projects.create', compact('clients', 'managers'));
     }
 
+    /**
+     * تخزين المشروع في قاعدة البيانات
+     */
     public function store(Request $request)
     {
         abort_unless(auth()->user()->can('manage projects'), 403);
 
-        // =========================
-        // Validate Project
-        // =========================
+        // قيم افتراضية للتحقق
+        $clientTypes = ['hospital', 'clinic', 'laboratory', 'pharmacy', 'government', 'company', 'other'];
+        $regions = [
+            'الرياض',
+            'مكة المكرمة',
+            'المدينة المنورة',
+            'القصيم',
+            'الشرقية',
+            'عسير',
+            'تبوك',
+            'حائل',
+            'الحدود الشمالية',
+            'جازان',
+            'نجران',
+            'الباحة',
+            'الجوف'
+        ];
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'client' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            // المعلومات الأساسية
+            'name' => 'required|string|max:200',
+            'code' => 'nullable|string|max:50|unique:projects,code',
+
+            // العميل
+            'client_id' => 'nullable|exists:users,id',
+            'client_name' => 'nullable|string|max:200',
+            'client_type' => ['nullable', Rule::in($clientTypes)],
+
+            // الوصف
             'description' => 'nullable|string',
 
-            // Documents
-            'documents.type.*' => 'nullable|string',
-            'documents.file.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+            // الموقع
+            'city' => 'nullable|string|max:100',
+            'region' => ['nullable', Rule::in($regions)],
+            'address' => 'nullable|string',
+
+            // التواريخ
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'actual_end_date' => 'nullable|date|after_or_equal:start_date',
+
+            // الإدارة
+            'project_manager_id' => 'nullable|exists:users,id',
+            'status' => ['required', Rule::in(['active', 'completed', 'on_hold', 'cancelled'])],
+            'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
+
+            // المالية
+            'budget' => 'nullable|numeric|min:0',
+            'actual_cost' => 'nullable|numeric|min:0',
+
+            // العقد
+            'contract_number' => 'nullable|string|max:100',
+            'contract_value' => 'nullable|numeric|min:0',
+            'warranty_period' => 'nullable|integer|min:0',
+
+            // ملاحظات
+            'notes' => 'nullable|string',
         ]);
 
-        // =========================
-        // Create Project
-        // =========================
-        $project = Project::create([
-            'name' => $validated['name'],
-            'client' => $validated['client'] ?? null,
-            'city' => $validated['city'] ?? null,
-            'start_date' => $validated['start_date'] ?? null,
-            'end_date' => $validated['end_date'] ?? null,
-            'description' => $validated['description'] ?? null,
+        // إنشاء المشروع
+        $project = Project::create(array_merge($validated, [
+            'is_active' => $validated['status'] === 'active',
+        ]));
+
+        return redirect()
+            ->route('projects.show', $project->id)
+            ->with('success', 'تم إضافة المشروع بنجاح.');
+    }
+
+    /**
+     * صفحة تعديل مشروع
+     */
+    public function edit($id)
+    {
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        $project = Project::findOrFail($id);
+        $clients = User::whereHas('roles', function ($query) {
+            $query->where('name', 'client');
+        })->get();
+
+        $managers = User::whereHas('roles', function ($query) {
+            $query->whereIn('name', ['manager', 'admin', 'supervisor']);
+        })->get();
+
+        return view('projects.edit', compact('project', 'clients', 'managers'));
+    }
+
+    /**
+     * تحديث بيانات المشروع
+     */
+    public function update(Request $request, $id)
+    {
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        $project = Project::findOrFail($id);
+
+        // قيم افتراضية للتحقق
+        $clientTypes = ['hospital', 'clinic', 'laboratory', 'pharmacy', 'government', 'company', 'other'];
+        $regions = [
+            'الرياض',
+            'مكة المكرمة',
+            'المدينة المنورة',
+            'القصيم',
+            'الشرقية',
+            'عسير',
+            'تبوك',
+            'حائل',
+            'الحدود الشمالية',
+            'جازان',
+            'نجران',
+            'الباحة',
+            'الجوف'
+        ];
+
+        $validated = $request->validate([
+            // المعلومات الأساسية
+            'name' => 'required|string|max:200',
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('projects', 'code')->ignore($project->id)
+            ],
+
+            // العميل
+            'client_id' => 'nullable|exists:users,id',
+            'client_name' => 'nullable|string|max:200',
+            'client_type' => ['nullable', Rule::in($clientTypes)],
+
+            // الوصف
+            'description' => 'nullable|string',
+
+            // الموقع
+            'city' => 'nullable|string|max:100',
+            'region' => ['nullable', Rule::in($regions)],
+            'address' => 'nullable|string',
+
+            // التواريخ
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'actual_end_date' => 'nullable|date|after_or_equal:start_date',
+
+            // الإدارة
+            'project_manager_id' => 'nullable|exists:users,id',
+            'status' => ['required', Rule::in(['active', 'completed', 'on_hold', 'cancelled'])],
+            'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
+
+            // المالية
+            'budget' => 'nullable|numeric|min:0',
+            'actual_cost' => 'nullable|numeric|min:0',
+
+            // العقد
+            'contract_number' => 'nullable|string|max:100',
+            'contract_value' => 'nullable|numeric|min:0',
+            'warranty_period' => 'nullable|integer|min:0',
+
+            // ملاحظات
+            'notes' => 'nullable|string',
         ]);
 
-        // =========================
-        // Handle Documents
-        // =========================
-        if ($request->has('documents.file')) {
+        // تحديث المشروع
+        $project->update(array_merge($validated, [
+            'is_active' => $validated['status'] === 'active',
+        ]));
 
-            foreach ($request->file('documents.file') as $index => $file) {
+        return redirect()
+            ->route('projects.show', $project->id)
+            ->with('success', 'تم تحديث بيانات المشروع بنجاح.');
+    }
 
-                if (!$file) {
-                    continue;
-                }
-
-                $type = $request->documents['type'][$index] ?? 'other';
-
-                // Store file
-                $path = $file->store(
-                    'projects/' . $project->id,
-                    'public'
-                );
-
-                // Save DB record
-                ProjectDocument::create([
-                    'project_id' => $project->id,
-                    'type' => $type,
-                    'file_path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                    'uploaded_by' => auth()->id(),
-                ]);
+    /**
+     * عرض تفاصيل المشروع
+     */
+    public function show($id)
+    {
+        $project = Project::with([
+            'client',
+            'manager',
+            'devices' => function ($query) {
+                $query->with('assignedTechnician')->limit(10);
+            },
+            'pmPlans' => function ($query) {
+                $query->with('device')->where('status', '!=', 'completed')->latest()->limit(5);
+            },
+            'breakdowns' => function ($query) {
+                $query->with('device')->whereIn('status', ['open', 'assigned'])->latest()->limit(5);
             }
+        ])->findOrFail($id);
+
+        // إحصائيات المشروع
+        $projectStats = $project->stats;
+
+        // أجهزة المشروع حسب الحالة
+        $devicesByStatus = [
+            'active' => $project->devices()->where('status', 'active')->count(),
+            'maintenance' => $project->devices()->where('status', 'under_maintenance')->count(),
+            'inactive' => $project->devices()->where('status', 'inactive')->count(),
+            'out_of_service' => $project->devices()->where('status', 'out_of_service')->count(),
+        ];
+
+        return view('projects.show', compact('project', 'projectStats', 'devicesByStatus'));
+    }
+
+    /**
+     * حذف المشروع (Soft Delete)
+     */
+    public function destroy(Project $project)
+    {
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        // التحقق إذا كان هناك أجهزة مرتبطة بالمشروع
+        if ($project->devices()->count() > 0) {
+            return redirect()
+                ->back()
+                ->with('error', 'لا يمكن حذف المشروع لأنه يحتوي على أجهزة مرتبطة به.');
         }
 
+        $project->delete();
+
         return redirect()
-            ->route('projects.show', $project->id)
-            ->with('success', 'Project created successfully with documents.');
+            ->route('projects.index')
+            ->with('success', 'تم حذف المشروع بنجاح.');
     }
 
-
-    public function show(Project $project)
-    {
-        $devices = $project->devices()
-            ->where('is_archived', false)
-            ->paginate(10)
-            ->appends([
-                'tab' => 'devices'
-            ]);
-
-
-
-
-        $devicesCount = $project->devices()->count();
-
-        $devicesByStatus = $project->devices()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        return view('projects.show', compact(
-            'project',
-            'devices',
-            'devicesCount',
-            'devicesByStatus'
-        ));
-    }
-
-    public function edit(Project $project)
+    /**
+     * تحديث حالة المشروع
+     */
+    public function updateStatus(Request $request, Project $project)
     {
         abort_unless(auth()->user()->can('manage projects'), 403);
 
-        return view('projects.edit', compact('project'));
-    }
-    public function update(Request $request, Project $project)
-    {
-        abort_unless(auth()->user()->can('manage projects'), 403);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'client' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'description' => 'nullable|string',
+        $request->validate([
+            'status' => ['required', Rule::in(['active', 'completed', 'on_hold', 'cancelled'])]
         ]);
 
-        $project->update($validated);
+        $project->update([
+            'status' => $request->status,
+            'is_active' => $request->status === 'active',
+            'actual_end_date' => $request->status === 'completed' ? now() : $project->actual_end_date,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث حالة المشروع بنجاح.',
+            'status' => $project->display_status['text'],
+        ]);
+    }
+
+    /**
+     * قائمة المشاريع المكتملة
+     */
+    public function completed(Request $request)
+    {
+        $query = Project::with(['client', 'manager'])
+            ->where('status', 'completed');
+
+        if ($request->filled('q')) {
+            $search = $request->q;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('client_name', 'like', "%{$search}%");
+            });
+        }
+
+        $projects = $query->latest()->paginate(15)->withQueryString();
+
+        return view('projects.completed', compact('projects'));
+    }
+
+    /**
+     * قائمة المشاريع المتأخرة
+     */
+    public function overdue(Request $request)
+    {
+        $query = Project::with(['client', 'manager'])
+            ->where('status', 'active')
+            ->whereDate('end_date', '<', now());
+
+        if ($request->filled('q')) {
+            $search = $request->q;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        $projects = $query->latest()->paginate(15)->withQueryString();
+
+        return view('projects.overdue', compact('projects'));
+    }
+
+    /**
+     * تحديث الميزانية
+     */
+    public function updateBudget(Request $request, Project $project)
+    {
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        $request->validate([
+            'actual_cost' => 'nullable|numeric|min:0',
+            'budget' => 'nullable|numeric|min:0',
+        ]);
+
+        $project->update($request->only(['actual_cost', 'budget']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث الميزانية بنجاح.',
+            'budget_usage' => $project->getBudgetUsagePercentage(),
+            'is_within_budget' => $project->isWithinBudget(),
+        ]);
+    }
+
+    /**
+     * استعادة مشروع محذوف
+     */
+    public function restore(Project $project)
+    {
+        abort_unless(auth()->user()->can('manage projects'), 403);
+
+        $project->restore();
 
         return redirect()
-            ->route('projects.show', $project->id)
-            ->with('success', 'Project updated successfully.');
-    }
-    public function destroy($id)
-    {
-        Project::findOrFail($id)->delete();
-
-        return redirect()->route('projects.index')->with('success', 'Project deleted successfully');
+            ->back()
+            ->with('success', 'تم استعادة المشروع بنجاح.');
     }
 }

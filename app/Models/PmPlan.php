@@ -2,110 +2,159 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use Carbon\Carbon;
-
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PmPlan extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'device_id',
-        'interval_months',
-        'next_pm_date',
-        'notes',
-        'assigned_to',
-        'status',
+        'created_by',
+        'title',
+        'description',
+        'frequency',
+        'custom_days',
+        'start_date',
+        'next_due_date',
+        'last_performed_date',
+        'tasks',
+        'instructions',
+        'is_active',
+        'status'
     ];
 
     protected $casts = [
-        'next_pm_date' => 'date',
+        'start_date' => 'date',
+        'next_due_date' => 'date',
+        'last_performed_date' => 'date',
+        'tasks' => 'array',
+        'is_active' => 'boolean',
+        'custom_days' => 'integer',
     ];
-    // الجهاز
+
+    /**
+     * العلاقات
+     */
+
     public function device()
     {
         return $this->belongsTo(Device::class);
     }
 
-    // الفني المسؤول
-    public function technician()
+    public function creator()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    // سجلات الصيانة
-    public function records()
+    public function pmRecords()
     {
         return $this->hasMany(PmRecord::class);
     }
 
-    public function assignedUser()
+    public function project()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->through('device')->has('project');
     }
 
-    public function attachments()
+    /**
+     * النطاقات
+     */
+
+    public function scopeActive($query)
     {
-        return $this->morphMany(Attachment::class, 'model');
+        return $query->where('is_active', true);
     }
 
-
-    public function getStatusBadgeAttribute(): array
+    public function scopeDue($query)
     {
-        return match ($this->status) {
-            'new', 'pending' => [
-                'label' => 'New',
-                'class' => 'bg-secondary',
-            ],
-            'assigned' => [
-                'label' => 'Assigned',
-                'class' => 'bg-info',
-            ],
-            'in_progress' => [
-                'label' => 'In Progress',
-                'class' => 'bg-primary',
-            ],
-            'done', 'completed' => [
-                'label' => 'Completed',
-                'class' => 'bg-success',
-            ],
-            default => [
-                'label' => ucfirst($this->status),
-                'class' => 'bg-dark',
-            ],
-        };
+        return $query->where('next_due_date', '<=', now());
     }
 
-
-    public function getTimingBadgeAttribute(): ?array
+    public function scopeOverdue($query)
     {
-        if (!$this->next_pm_date || $this->status === 'completed') {
-            return null;
+        return $query->where('next_due_date', '<', now()->subDays(7));
+    }
+
+    public function scopeByFrequency($query, $frequency)
+    {
+        return $query->where('frequency', $frequency);
+    }
+
+    public function scopeByDevice($query, $deviceId)
+    {
+        return $query->where('device_id', $deviceId);
+    }
+
+    /**
+     * التوابع المساعدة
+     */
+
+    public function isDue()
+    {
+        return $this->next_due_date <= now();
+    }
+
+    public function isOverdue()
+    {
+        return $this->next_due_date < now()->subDays(7);
+    }
+
+    public function calculateNextDueDate()
+    {
+        $lastDate = $this->last_performed_date ?: $this->start_date;
+
+        switch ($this->frequency) {
+            case 'daily':
+                return $lastDate->addDay();
+            case 'weekly':
+                return $lastDate->addWeek();
+            case 'monthly':
+                return $lastDate->addMonth();
+            case 'quarterly':
+                return $lastDate->addMonths(3);
+            case 'half_yearly':
+                return $lastDate->addMonths(6);
+            case 'yearly':
+                return $lastDate->addYear();
+            case 'custom':
+                return $lastDate->addDays($this->custom_days);
+            default:
+                return $lastDate->addMonth();
+        }
+    }
+
+    public function getStatusAttribute()
+    {
+        if (!$this->is_active) {
+            return 'inactive';
         }
 
-        $today = Carbon::today();
-
-        if ($this->next_pm_date->lt($today)) {
-            return [
-                'label' => 'Overdue',
-                'class' => 'bg-danger',
-            ];
+        if ($this->isOverdue()) {
+            return 'overdue';
         }
 
-        if ($this->next_pm_date->lte($today->copy()->addDays(30))) {
-            return [
-                'label' => 'Due Soon',
-                'class' => 'bg-warning text-dark',
-            ];
+        if ($this->isDue()) {
+            return 'due';
         }
 
-        return [
-            'label' => 'On Track',
-            'class' => 'bg-success-subtle text-success',
-        ];
+        return 'pending';
     }
 
+    /**
+     * الأحداث
+     */
 
+    protected static function boot()
+    {
+        parent::boot();
 
-
+        static::updating(function ($plan) {
+            if ($plan->isDirty('last_performed_date')) {
+                $plan->next_due_date = $plan->calculateNextDueDate();
+            }
+        });
+    }
 }
